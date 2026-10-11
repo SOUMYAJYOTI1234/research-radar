@@ -1,0 +1,64 @@
+[
+  {
+    "topic": "variational autoencoder",
+    "expected_ids": ["1312.6114"],
+    "note": "Auto-Encoding Variational Bayes (Kingma and Welling, 2013)"
+  },
+  {
+    "topic": "generative adversarial networks",
+    "expected_ids": ["1406.2661"],
+    "note": "Generative Adversarial Networks (Goodfellow et al., 2014)"
+  },
+  {
+    "topic": "denoising diffusion probabilistic models",
+    "expected_ids": ["2006.11239"],
+    "note": "Denoising Diffusion Probabilistic Models (Ho, Jain and Abbeel, 2020)"
+  },
+  {
+    "topic": "retrieval augmented generation",
+    "expected_ids": ["2005.11401"],
+    "note": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (Lewis et al., 2020)"
+  },
+  {
+    "topic": "chain of thought prompting",
+    "expected_ids": ["2201.11903"],
+    "note": "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models (Wei et al., 2022)"
+  },
+  {
+    "topic": "reasoning and acting language model agents",
+    "expected_ids": ["2210.03629"],
+    "note": "ReAct: Synergizing Reasoning and Acting in Language Models (Yao et al., 2022)"
+  },
+  {
+    "topic": "deep residual learning image recognition",
+    "expected_ids": ["1512.03385"],
+    "note": "Deep Residual Learning for Image Recognition (He et al., 2015)"
+  },
+  {
+    "topic": "adam stochastic optimization",
+    "expected_ids": ["1412.6980"],
+    "note": "Adam: A Method for Stochastic Optimization (Kingma and Ba, 2014)"
+  },
+  {
+    "topic": "quantum approximate optimization algorithm",
+    "expected_ids": ["1411.4028"],
+    "note": "A Quantum Approximate Optimization Algorithm (Farhi, Goldstone and Gutmann, 2014)"
+  },
+  {
+    "topic": "variational quantum eigensolver",
+    "expected_ids": ["1304.3117"],
+    "note": "A variational eigenvalue solver on a quantum processor (Peruzzo et al., 2013)"
+  },
+  {
+    "topic": "zxqv blorptastic",
+    "expected_ids": [],
+    "note": "Loop-behaviour case: no matches, so it should end empty after all rounds.",
+    "loop_check": "empty_after_all_rounds"
+  },
+  {
+    "topic": "graph neural networks",
+    "expected_ids": [],
+    "note": "Loop-behaviour case: very many results, so it should trigger date narrowing.",
+    "loop_check": "date_narrowing"
+  }
+]
