@@ -1,9 +1,28 @@
+import asyncio
 from pathlib import Path
 
 import httpx
 import pytest
 
+from app.arxiv_client import ArxivClient, RateLimiter
+
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+
+class FakeClock:
+    """A clock for RateLimiter: sleep() moves time forward instead of waiting."""
+
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps: list[float] = []
+
+    def __call__(self) -> float:
+        return self.now
+
+    async def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += seconds
+        await asyncio.sleep(0)  # still give other tasks a turn, as a real sleep would
 
 
 @pytest.fixture
@@ -55,5 +74,27 @@ def mock_arxiv(load_fixture):
 
         client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
         return client, request_log
+
+    return build
+
+
+@pytest.fixture
+def fake_clock():
+    return FakeClock()
+
+
+@pytest.fixture
+def limiter(fake_clock):
+    """A real RateLimiter driven by the fake clock, so tests never really sleep."""
+    return RateLimiter(clock=fake_clock, sleep=fake_clock.sleep)
+
+
+@pytest.fixture
+def arxiv(mock_arxiv, limiter):
+    """arxiv(routes) -> (ArxivClient on the fake transport and fake-clock limiter, request_log)."""
+
+    def build(routes):
+        http, request_log = mock_arxiv(routes)
+        return ArxivClient(http, limiter), request_log
 
     return build

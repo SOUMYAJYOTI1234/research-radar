@@ -230,19 +230,19 @@ def test_document_that_is_not_an_atom_feed_raises():
 
 
 @pytest.mark.anyio
-async def test_fetch_returns_parsed_feed(mock_arxiv):
-    client, log = mock_arxiv({QUERY: "normal.xml"})
-    total, entries = await ArxivClient(client).fetch(QUERY)
+async def test_fetch_returns_parsed_feed(arxiv):
+    client, log = arxiv({QUERY: "normal.xml"})
+    total, entries = await client.fetch(QUERY)
     assert total == 245
     assert len(entries) == 12
     assert len(log) == 1
 
 
 @pytest.mark.anyio
-async def test_fetch_sends_endpoint_params_and_timeout(mock_arxiv, monkeypatch):
+async def test_fetch_sends_endpoint_params_and_timeout(arxiv, monkeypatch):
     monkeypatch.delenv("CONTACT_EMAIL", raising=False)
-    client, log = mock_arxiv({QUERY: "normal.xml"})
-    await ArxivClient(client).fetch(QUERY)
+    client, log = arxiv({QUERY: "normal.xml"})
+    await client.fetch(QUERY)
 
     request = log[0]
     assert request.method == "GET"
@@ -276,13 +276,13 @@ async def test_fetch_sends_endpoint_params_and_timeout(mock_arxiv, monkeypatch):
     ],
     ids=["unset", "blank", "set"],
 )
-async def test_user_agent_with_and_without_contact_email(mock_arxiv, monkeypatch, contact_email, expected):
+async def test_user_agent_with_and_without_contact_email(arxiv, monkeypatch, contact_email, expected):
     if contact_email is None:
         monkeypatch.delenv("CONTACT_EMAIL", raising=False)
     else:
         monkeypatch.setenv("CONTACT_EMAIL", contact_email)
-    client, log = mock_arxiv({QUERY: "normal.xml"})
-    await ArxivClient(client).fetch(QUERY)
+    client, log = arxiv({QUERY: "normal.xml"})
+    await client.fetch(QUERY)
     assert log[0].headers["User-Agent"] == expected
 
 
@@ -298,25 +298,25 @@ async def test_user_agent_with_and_without_contact_email(mock_arxiv, monkeypatch
     ],
     ids=["error-feed", "malformed-xml", "http-500", "timeout", "connect-error"],
 )
-async def test_upstream_failures_raise_arxiv_unavailable_without_retry(mock_arxiv, reply, reason_part):
-    client, log = mock_arxiv({QUERY: reply})
+async def test_upstream_failures_raise_arxiv_unavailable_without_retry(arxiv, reply, reason_part):
+    client, log = arxiv({QUERY: reply})
     with pytest.raises(ArxivUnavailable) as info:
-        await ArxivClient(client).fetch(QUERY)
+        await client.fetch(QUERY)
     assert reason_part in info.value.reason
     assert len(log) == 1, "the client must not retry"
 
 
 @pytest.mark.anyio
-async def test_error_feed_with_http_400_raises(mock_arxiv, load_fixture):
+async def test_error_feed_with_http_400_raises(arxiv, load_fixture):
     # Real arXiv sends its error feed with status 400.
-    client, log = mock_arxiv({QUERY: httpx.Response(400, content=load_fixture("error.xml"))})
+    client, log = arxiv({QUERY: httpx.Response(400, content=load_fixture("error.xml"))})
     with pytest.raises(ArxivUnavailable):
-        await ArxivClient(client).fetch(QUERY)
+        await client.fetch(QUERY)
     assert len(log) == 1
 
 
 @pytest.mark.anyio
-async def test_whole_request_is_capped_by_the_timeout(monkeypatch):
+async def test_whole_request_is_capped_by_the_timeout(monkeypatch, limiter):
     # httpx times each phase separately; a slow trickle must still stop at the overall limit.
     monkeypatch.setattr(arxiv_client, "TIMEOUT_SECONDS", 0.05)
 
@@ -324,7 +324,7 @@ async def test_whole_request_is_capped_by_the_timeout(monkeypatch):
         await asyncio.sleep(5)
         return httpx.Response(200)
 
-    client = httpx.AsyncClient(transport=httpx.MockTransport(slow_handler))
+    client = ArxivClient(httpx.AsyncClient(transport=httpx.MockTransport(slow_handler)), limiter)
     with pytest.raises(ArxivUnavailable) as info:
-        await ArxivClient(client).fetch(QUERY)
+        await client.fetch(QUERY)
     assert "timed out" in info.value.reason

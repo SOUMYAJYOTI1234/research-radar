@@ -54,12 +54,14 @@ Decision after each round, where `total` is `total_results`:
 4. `total < 10` and a broader round exists: go to the next broader round.
 5. `total < 10` and no broader round exists: accept what this round returned. Stop.
 - Hard limit: 3 arXiv requests per search. If the limit is reached, accept the best round so far (the one with the most results).
-- If a request raises `ArxivUnavailable`: if an earlier round returned at least 1 paper, accept that round and record the failure in the trace; otherwise the search fails.
+- "Best round so far" means the round with the most returned papers; ties go to the later round. When the third request is not a narrowed one and its total is below 10, the best round so far is accepted instead of applying rule 5. Rules 1, 2 and 3 still decide a third request whose total is 10 or more, and rule 2 decides a narrowed one.
+- If a request raises `ArxivUnavailable`: if an earlier round returned at least 1 paper, accept the best earlier round (same definition) and record the failure in the trace; otherwise the search fails.
 
 Trace entry per round: `round` (1-3), `strategy` (exact, all_words, any_word, plus `+date_narrowed` when used), `query` (the exact search_query string), `total_results`, `returned`, `decision` (accept, broaden, narrow, failed), `reason` (one plain sentence), `duration_ms`.
 - The trace contains every request made, including a failed one. Earlier rows keep the decision taken after them (`narrow` or `broaden`); the last row records how the search ended.
 - Narrowed total below 10: the narrowed row has decision `accept` and reason "Only N matches in the last 5 years, so I kept the round-K results." (with the actual N, and K the un-narrowed round, usually 1).
 - A later request fails after an earlier round returned at least 1 paper: the failed row has decision `failed` and reason "arXiv did not respond, so I kept the results from round K." (with the actual K).
+- The hard limit keeps an earlier round K: the third row has decision `accept` and reason "Only N matches, so I kept the round-K results." (with N the third round's total).
 
 Status, with `target = min(10, max_papers)`:
 - `completed`: at least `target` papers returned.

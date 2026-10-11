@@ -4,7 +4,10 @@ import asyncio
 import logging
 import os
 import re
+import time
 import xml.etree.ElementTree as ET
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -56,12 +59,48 @@ def user_agent() -> str:
     return "ResearchRadar/1.0 (course project)"
 
 
-class ArxivClient:
-    """Sends one search to arXiv per fetch() call. Never retries."""
+class RateLimiter:
+    """Starts requests at least `min_interval` seconds apart, one at a time.
 
-    def __init__(self, http: httpx.AsyncClient):
+    The lock is held for the whole request, so a second request waits until the
+    first has its response (or error), then until `min_interval` has passed since
+    the first one started.
+    """
+
+    def __init__(
+        self,
+        min_interval: float = 3.0,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ):
+        self.min_interval = min_interval
+        self._clock = clock
+        self._sleep = sleep
+        self._lock = asyncio.Lock()
+        self._last_start: float | None = None
+
+    @asynccontextmanager
+    async def slot(self) -> AsyncIterator[None]:
+        async with self._lock:
+            if self._last_start is not None:
+                wait = self._last_start + self.min_interval - self._clock()
+                if wait > 0:
+                    await self._sleep(wait)
+            self._last_start = self._clock()
+            yield
+
+
+# One limiter for the whole process, shared by the app and the evaluation script.
+SHARED_LIMITER = RateLimiter()
+
+
+class ArxivClient:
+    """Sends one search to arXiv per fetch() call, through a rate limiter. Never retries."""
+
+    def __init__(self, http: httpx.AsyncClient, limiter: RateLimiter | None = None):
         self._http = http
         self._headers = {"User-Agent": user_agent()}
+        self.limiter = SHARED_LIMITER if limiter is None else limiter
 
     async def fetch(self, search_query: str) -> tuple[int, list[ArxivEntry]]:
         params = {
@@ -71,17 +110,18 @@ class ArxivClient:
             "sortBy": "relevance",
             "sortOrder": "descending",
         }
-        try:
-            # httpx applies its timeout to each phase (connect, read, ...) separately,
-            # so the outer deadline caps the whole request at the same limit.
-            async with asyncio.timeout(TIMEOUT_SECONDS):
-                response = await self._http.get(
-                    ENDPOINT, params=params, headers=self._headers, timeout=TIMEOUT_SECONDS
-                )
-        except (httpx.TimeoutException, TimeoutError) as exc:
-            raise ArxivUnavailable("arXiv timed out") from exc
-        except httpx.TransportError as exc:
-            raise ArxivUnavailable("could not connect to arXiv") from exc
+        async with self.limiter.slot():
+            try:
+                # httpx applies its timeout to each phase (connect, read, ...) separately,
+                # so the outer deadline caps the whole request at the same limit.
+                async with asyncio.timeout(TIMEOUT_SECONDS):
+                    response = await self._http.get(
+                        ENDPOINT, params=params, headers=self._headers, timeout=TIMEOUT_SECONDS
+                    )
+            except (httpx.TimeoutException, TimeoutError) as exc:
+                raise ArxivUnavailable("arXiv timed out") from exc
+            except httpx.TransportError as exc:
+                raise ArxivUnavailable("could not connect to arXiv") from exc
         if response.status_code != 200:
             raise ArxivUnavailable(f"arXiv returned HTTP {response.status_code}")
         return parse_feed(response.content)
