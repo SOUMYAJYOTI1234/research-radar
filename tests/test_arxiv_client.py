@@ -118,6 +118,82 @@ def test_http_pdf_link_changed_to_https(load_fixture):
     assert entries_by_id(entries)["math/0601004"].pdf_url == "https://arxiv.org/pdf/math/0601004v1"
 
 
+GOOD_ENTRY = """
+  <entry>
+    <id>http://arxiv.org/abs/2401.00001v1</id>
+    <updated>2024-01-02T10:00:00Z</updated>
+    <published>2024-01-02T10:00:00Z</published>
+    <title>A Complete Entry</title>
+    <summary>Every required field is present.</summary>
+    <author><name>Ada Example</name></author>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>"""
+
+
+def feed_with(*entries: str) -> bytes:
+    return (
+        '<feed xmlns="http://www.w3.org/2005/Atom" '
+        'xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" '
+        'xmlns:arxiv="http://arxiv.org/schemas/atom">'
+        "<opensearch:totalResults>2</opensearch:totalResults>" + "".join(entries) + "</feed>"
+    ).encode()
+
+
+def test_whitespace_collapsed_in_wrapped_title_and_abstract():
+    # Live arXiv sends one-line titles today, but older responses wrapped them.
+    wrapped = GOOD_ENTRY.replace(
+        "<title>A Complete Entry</title>", "<title>A Complete\n   Entry  with\tGaps</title>"
+    ).replace(
+        "<summary>Every required field is present.</summary>",
+        "<summary>  Every required\nfield is\n\n present.\n</summary>",
+    )
+    _, entries = parse_feed(feed_with(wrapped))
+    assert entries[0].title == "A Complete Entry with Gaps"
+    assert entries[0].abstract == "Every required field is present."
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("<id>http://arxiv.org/abs/2401.00001v1</id>", ""),
+        ("<id>http://arxiv.org/abs/2401.00001v1</id>", "<id>http://arxiv.org/listing/2401</id>"),
+        ("<title>A Complete Entry</title>", ""),
+        ("<summary>Every required field is present.</summary>", ""),
+        ("<published>2024-01-02T10:00:00Z</published>", ""),
+        ("<published>2024-01-02T10:00:00Z</published>", "<published>soon</published>"),
+        ("<updated>2024-01-02T10:00:00Z</updated>", ""),
+        ('<arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>', ""),
+        ('term="cs.LG"', ""),
+    ],
+    ids=[
+        "no-id",
+        "id-without-abs",
+        "no-title",
+        "no-summary",
+        "no-published",
+        "unreadable-published",
+        "no-updated",
+        "no-primary-category",
+        "primary-category-without-term",
+    ],
+)
+def test_entry_missing_required_field_is_skipped_and_logged(caplog, old, new):
+    bad_entry = GOOD_ENTRY.replace(old, new).replace("2401.00001", "2401.00002")
+    with caplog.at_level("WARNING", logger="app.arxiv_client"):
+        total, entries = parse_feed(feed_with(GOOD_ENTRY, bad_entry))
+    assert total == 2, "total_results is still what arXiv reported"
+    assert [entry.arxiv_id for entry in entries] == ["2401.00001"]
+    skipped = [record for record in caplog.records if record.name == "app.arxiv_client"]
+    assert len(skipped) == 1
+    assert "skipped" in skipped[0].getMessage().lower()
+
+
+def test_complete_feed_logs_nothing(load_fixture, caplog):
+    with caplog.at_level("DEBUG", logger="app.arxiv_client"):
+        parse_feed(load_fixture("normal.xml"))
+    assert not [record for record in caplog.records if record.name == "app.arxiv_client"]
+
+
 def test_broad_feed_total_results(load_fixture):
     total, entries = parse_feed(load_fixture("broad.xml"))
     assert total == 54000

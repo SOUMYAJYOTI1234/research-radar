@@ -34,6 +34,7 @@ The backend validates input, runs the bounded arXiv search loop, parses results,
   - `abs_url`: `https://arxiv.org/abs/<arxiv_id>`. `pdf_url`: the link with `title="pdf"` (with `http://` changed to `https://`), else `https://arxiv.org/pdf/<arxiv_id>`.
 - `total_results`: integer from `opensearch:totalResults`.
 - Remove duplicate `arxiv_id`s, keeping the first.
+- An entry that is missing a required field is skipped, and the rest of the feed is still used. Required fields: an `<id>` containing `/abs/<arxiv_id>`, `title`, `summary`, `published`, `updated` (each a readable date) and `arxiv:primary_category` with a `term`. Each skipped entry produces one log line saying an entry was skipped and why. `total_results` is still the value arXiv reported.
 
 ## Search loop (`app/search_loop.py`)
 Rounds, from narrow to broad (`P` = terms joined by single spaces, `t1..tn` = terms):

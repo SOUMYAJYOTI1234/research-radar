@@ -1,6 +1,7 @@
 """Outbound requests to the arXiv API and parsing of its Atom feed."""
 
 import asyncio
+import logging
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -8,6 +9,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 ENDPOINT = "https://export.arxiv.org/api/query"
 TIMEOUT_SECONDS = 10.0
@@ -27,6 +30,10 @@ class ArxivUnavailable(Exception):
     def __init__(self, reason: str):
         super().__init__(reason)
         self.reason = reason
+
+
+class _IncompleteEntry(Exception):
+    """One entry lacks a required field; the entry is skipped, not the feed."""
 
 
 @dataclass
@@ -102,7 +109,12 @@ def parse_feed(xml: bytes | str) -> tuple[int, list[ArxivEntry]]:
     entries: list[ArxivEntry] = []
     seen: set[str] = set()
     for raw in raw_entries:
-        entry = _parse_entry(raw)
+        try:
+            entry = _parse_entry(raw)
+        except _IncompleteEntry as exc:
+            entry_id = (raw.findtext(f"{ATOM}id") or "").strip() or "unknown id"
+            logger.warning("Skipped an arXiv entry (%s): %s", entry_id, exc)
+            continue
         if entry.arxiv_id not in seen:
             seen.add(entry.arxiv_id)
             entries.append(entry)
@@ -112,12 +124,12 @@ def parse_feed(xml: bytes | str) -> tuple[int, list[ArxivEntry]]:
 def _parse_entry(raw: ET.Element) -> ArxivEntry:
     match = _ID_PATTERN.search(_required_text(raw, "id").strip())
     if match is None:
-        raise ArxivUnavailable("arXiv entry has an unrecognised id")
+        raise _IncompleteEntry("unrecognised <id>")
     arxiv_id = match["arxiv_id"]
 
     primary = raw.find(f"{ARXIV}primary_category")
     if primary is None or not primary.get("term"):
-        raise ArxivUnavailable("arXiv entry has no primary category")
+        raise _IncompleteEntry("no primary category")
 
     pdf_url = f"https://arxiv.org/pdf/{arxiv_id}"
     for link in raw.findall(f"{ATOM}link"):
@@ -144,7 +156,7 @@ def _parse_entry(raw: ET.Element) -> ArxivEntry:
 def _required_text(raw: ET.Element, tag: str) -> str:
     text = raw.findtext(f"{ATOM}{tag}")
     if text is None:
-        raise ArxivUnavailable(f"arXiv entry has no <{tag}>")
+        raise _IncompleteEntry(f"no <{tag}>")
     return text
 
 
@@ -153,7 +165,7 @@ def _date(raw: ET.Element, tag: str) -> str:
     try:
         return datetime.fromisoformat(_required_text(raw, tag).strip()).date().isoformat()
     except ValueError as exc:
-        raise ArxivUnavailable(f"arXiv entry has an unreadable <{tag}> date") from exc
+        raise _IncompleteEntry(f"unreadable <{tag}> date") from exc
 
 
 def _collapse(text: str) -> str:
