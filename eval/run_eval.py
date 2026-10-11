@@ -309,14 +309,19 @@ async def run_experiment(
     today: date,
     pause: float = 3.0,
 ) -> list[RunRecord]:
-    """Every configuration back to back for each topic, with a pause so no search waits on the previous one."""
+    """Every configuration back to back for each topic, with a pause so no search waits on the previous one.
+
+    arXiv caches identical request URLs, and configurations with the same pool size send the same first request.
+    The order alternates (forward, then reversed) from topic to topic, so each one meets the cold cache equally often.
+    """
 
     async def search(terms: list[str]) -> SearchResponse:
         return await run_search(terms, None, None, MAX_PAPERS, client, today)
 
     records = []
     for number, golden in enumerate(topics, 1):
-        for config in configs:
+        order = configs if number % 2 == 1 else list(reversed(configs))
+        for config in order:
             await asyncio.sleep(pause)
             recorder.take()
             with use_config(config):
@@ -465,7 +470,8 @@ def render_experiment(
         f"- Run: {run_at.astimezone(timezone.utc):%Y-%m-%d %H:%M} UTC",
         f"- Commit: `{commit}`",
         "- Configurations: " + "; ".join(c.describe() for c in configs) + ".",
-        "- Order: interleaved per topic (every configuration back to back), 3 s pause between searches; "
+        "- Order: interleaved per topic (every configuration back to back), alternating forward and reversed "
+        "from topic to topic because arXiv caches identical request URLs; 3 s pause between searches; "
         "uncached `run_search()`, no filters, `max_papers=20`.",
         "- Decision rule: specs/evaluation-spec.md, \"Experiment: title narrowing and pool size\" (fixed before the run).",
         "",

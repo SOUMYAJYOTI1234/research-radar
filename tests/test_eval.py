@@ -424,3 +424,22 @@ async def test_experiment_report_has_every_section(load_fixture, limiter):
     assert "## Decision rule applied" in text
     assert "No configuration qualifies" in text  # every config hits the same paper here
     assert "Architect sign-off:" in text
+
+
+@pytest.mark.anyio
+async def test_run_order_alternates_so_cached_requests_are_shared_fairly(load_fixture, limiter):
+    def handler(request):
+        return httpx.Response(200, content=load_fixture("normal.xml"))
+
+    recorder = Recorder()
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), event_hooks=recorder.hooks)
+    topics = [GoldenTopic(f"topic number {n}", [], "note") for n in range(4)]
+    configs = [CONFIGS[name] for name in ("baseline", "a", "b", "ab")]
+    records = await run_experiment(topics, configs, ArxivClient(http, limiter), recorder, TODAY, pause=0)
+    orders = [[r.config for r in records[i:i + 4]] for i in range(0, 16, 4)]
+    assert orders == [
+        ["baseline", "a", "b", "ab"],
+        ["ab", "b", "a", "baseline"],
+        ["baseline", "a", "b", "ab"],
+        ["ab", "b", "a", "baseline"],
+    ]
