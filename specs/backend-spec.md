@@ -22,9 +22,12 @@ The backend validates input, runs the bounded arXiv search loop, parses results,
 ## arXiv request (`app/arxiv_client.py`)
 - Endpoint: `https://export.arxiv.org/api/query`, GET, parameters `search_query`, `start=0`, `max_results=50`, `sortBy=relevance`, `sortOrder=descending`.
 - Timeout: 10 seconds per request. No automatic retries.
+- The 10 seconds cap the whole request from start to full response, not only each phase (connect, send, read) separately.
 - Header `User-Agent: ResearchRadar/1.0 (course project; contact: <CONTACT_EMAIL env var, optional>)`. When `CONTACT_EMAIL` is not set, the header is `ResearchRadar/1.0 (course project)`.
+- A `CONTACT_EMAIL` that is empty or only whitespace counts as not set.
 - Shared limiter: one process-wide `asyncio.Lock` plus the time of the last request; wait until at least 3.0 seconds have passed since the previous request started. The lock is held until the response (or error) arrives, so only one arXiv request is in flight at a time.
 - Upstream errors: timeout, connection error, non-200 status, unparseable XML, or an arXiv error feed (a single entry whose `id` contains `api/errors`) all raise one `ArxivUnavailable` exception carrying a short reason.
+- A well-formed XML document that is not an Atom feed (for example an HTML maintenance page) also raises `ArxivUnavailable`.
 - Parse with `xml.etree.ElementTree` using the Atom, OpenSearch and arXiv namespaces. Per entry:
   - `arxiv_id`: from the `<id>` URL, with the version suffix removed (`2301.01234v2` becomes `2301.01234`; old-style IDs such as `hep-th/9901001` are kept whole).
   - `title`, `abstract` (from `summary`): whitespace collapsed to single spaces.
