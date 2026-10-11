@@ -1,10 +1,14 @@
 """BibTeX keys and @misc entries for arXiv papers."""
 
+import re
 import unicodedata
 
 from app.arxiv_client import ArxivEntry
 
 MIN_TITLE_WORD = 4  # "longer than 3 letters"
+
+# A LaTeX special character that is not already escaped.
+_LATEX_SPECIAL = re.compile(r"(?<!\\)([&%#_$])")
 
 
 def _ascii_letters(text: str) -> str:
@@ -42,7 +46,7 @@ def make_entries(papers: list[ArxivEntry]) -> list[str]:
         base = make_key(paper)
         key = base + _suffix(seen.get(base, 0))
         seen[base] = seen.get(base, 0) + 1
-        title = paper.title.replace("{", "").replace("}", "")
+        title = _LATEX_SPECIAL.sub(r"\\\1", paper.title.replace("{", "").replace("}", ""))
         entries.append(
             f"@misc{{{key}, title={{{title}}}, author={{{' and '.join(paper.authors)}}}, "
             f"year={{{paper.published[:4]}}}, eprint={{{paper.arxiv_id}}}, archivePrefix={{arXiv}}, "

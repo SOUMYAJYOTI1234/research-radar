@@ -6,7 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from app.arxiv_client import parse_feed
-from app.ranking import group, order_clusters, rank, recency
+from app.ranking import group, make_label, order_clusters, rank, recency
 from app.topic import normalise
 
 TODAY = date(2026, 10, 11)
@@ -29,13 +29,15 @@ def test_score_is_relevance_and_recency_weighted_and_rounded(load_fixture):
     ranking = rank(entries, TERMS, 30, TODAY)
 
     # Independent computation straight from the spec: title counted twice, these TF-IDF settings,
-    # cosine similarity against the joined terms, recency over 10 years, weights 0.8 / 0.2.
+    # cosine similarity against the joined terms, min-max normalised over the round,
+    # recency over 10 years, weights 0.8 / 0.2.
     vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2), sublinear_tf=True)
     matrix = vectorizer.fit_transform([f"{e.title} {e.title} {e.abstract}" for e in entries])
     relevance = cosine_similarity(vectorizer.transform([" ".join(TERMS)]), matrix)[0]
+    normalised = (relevance - relevance.min()) / (relevance.max() - relevance.min())
     expected = {
         e.arxiv_id: round(0.8 * r + 0.2 * max(0.0, 1 - (2026 - int(e.published[:4])) / 10), 3)
-        for e, r in zip(entries, relevance)
+        for e, r in zip(entries, normalised)
     }
     assert dict(zip(ids(ranking.entries), ranking.scores)) == expected
 
@@ -46,7 +48,8 @@ def test_scores_have_at_most_3_decimals(load_fixture):
     assert any(score != round(score, 2) for score in ranking.scores), "scores are not cut to 2 decimals"
 
 
-def test_score_with_no_relevance_is_recency_only(make_entry):
+def test_equal_relevance_gives_every_paper_1(make_entry):
+    # None of the papers mentions the topic, so all relevances are equal (0) and normalise to 1.
     entries = [
         make_entry("2101.00001", title="Graph Networks", abstract="Message passing.", published="2021-01-05"),
         make_entry("2601.00001", title="Graph Networks", abstract="Message passing.", published="2026-01-05"),
@@ -54,10 +57,39 @@ def test_score_with_no_relevance_is_recency_only(make_entry):
     ]
     ranking = rank(entries, ["quantum"], 30, TODAY)
     assert dict(zip(ids(ranking.entries), ranking.scores)) == {
-        "2601.00001": 0.2,
-        "2101.00001": 0.1,
-        "1001.0001": 0.0,
+        "2601.00001": 1.0,
+        "2101.00001": 0.9,
+        "1001.0001": 0.8,
     }
+
+
+def test_relevance_is_min_max_normalised_over_the_round(make_entry):
+    published = "2026-01-05"  # recency 1 for every paper
+    entries = [
+        make_entry("2601.00001", title="Quantum Error Mitigation", abstract="Quantum noise in quantum devices.",
+                   published=published),
+        make_entry("2601.00002", title="Noise in Devices", abstract="A short note on quantum noise.",
+                   published=published),
+        make_entry("2601.00003", title="Graph Networks", abstract="Message passing on graphs.", published=published),
+    ]
+    ranking = rank(entries, ["quantum"], 30, TODAY)
+    scores = dict(zip(ids(ranking.entries), ranking.scores))
+    assert scores["2601.00001"] == 1.0, "the most relevant paper gets normalised relevance 1"
+    assert scores["2601.00003"] == 0.2, "the least relevant paper gets normalised relevance 0"
+    assert 0.2 < scores["2601.00002"] < 1.0
+
+
+def test_normalisation_uses_the_whole_round_not_only_the_kept_papers(make_entry):
+    published = "2026-01-05"
+    entries = [
+        make_entry("2601.00001", title="Quantum Error Mitigation", abstract="Quantum noise.", published=published),
+        make_entry("2601.00002", title="Noise in Devices", abstract="On quantum noise.", published=published),
+        make_entry("2601.00003", title="Graph Networks", abstract="Message passing.", published=published),
+    ]
+    full = rank(entries, ["quantum"], 30, TODAY)
+    top2 = rank(entries, ["quantum"], 2, TODAY)
+    assert top2.scores == full.scores[:2]
+    assert top2.scores[1] < 1.0, "the second paper is not stretched to 1 by cutting the third"
 
 
 @pytest.mark.parametrize(
@@ -152,9 +184,59 @@ def test_group_label_is_the_top_3_centroid_terms(load_fixture):
     for g in groups:
         # A converged KMeans centroid is the mean of its members' vectors.
         centroid = vectors[[i for i, gid in enumerate(group_ids) if gid == g.group_id]].mean(axis=0)
-        top3 = sorted(range(len(centroid)), key=lambda j: (-centroid[j], ranking.feature_names[j]))[:3]
+        allowed = [
+            j
+            for j, name in enumerate(ranking.feature_names)
+            if centroid[j] > 0 and not any(word.startswith(t) for word in name.split() for t in TERMS)
+        ]
+        top3 = sorted(allowed, key=lambda j: (-centroid[j], ranking.feature_names[j]))[:3]
         assert g.label == ", ".join(ranking.feature_names[j] for j in top3)
         assert len(set(g.label.split(", "))) == 3
+
+
+def test_labels_leave_out_query_terms_in_real_groups(load_fixture):
+    terms = ["graph", "neural", "networks"]
+    ranking = rank(entries_from(load_fixture, "normal.xml", "broad.xml"), terms, 20, TODAY)
+    _, groups = group(ranking)
+    for g in groups:
+        for term in g.label.split(", "):
+            assert not any(word.startswith(t) for word in term.split() for t in terms), g.label
+
+
+# --- Labels ----------------------------------------------------------------------------
+
+NAMES = ["attention", "graph", "graph neural", "graphs", "message passing", "neural networks", "pooling", "subgraph"]
+
+
+def weights(**by_name):
+    return np.array([by_name.get(name.replace(" ", "_"), 0.0) for name in NAMES])
+
+
+def test_label_leaves_out_query_terms_plurals_and_phrases_but_keeps_subgraph():
+    centroid = weights(graph=0.9, graphs=0.8, graph_neural=0.7, neural_networks=0.6, subgraph=0.5, pooling=0.4,
+                       message_passing=0.3, attention=0.2)
+    assert make_label(centroid, NAMES, ["graph", "neural", "networks"]) == "subgraph, pooling, message passing"
+
+
+def test_label_with_fewer_than_3_terms_left_uses_what_remains():
+    centroid = weights(graph=0.9, graphs=0.8, subgraph=0.5)  # every other term has weight 0
+    assert make_label(centroid, NAMES, ["graph", "neural"]) == "subgraph"
+
+
+def test_label_with_no_terms_left_is_other():
+    centroid = weights(graph=0.9, graphs=0.8, graph_neural=0.4)
+    assert make_label(centroid, NAMES, ["graph", "neural"]) == "Other"
+
+
+def test_label_splits_hyphenated_query_terms_like_tfidf():
+    names = ["contrastive", "self", "selfish", "supervised learning"]
+    centroid = np.array([0.1, 0.9, 0.8, 0.7])
+    assert make_label(centroid, names, ["self-supervised"]) == "contrastive"
+
+
+def test_label_orders_equal_weights_alphabetically():
+    centroid = weights(pooling=0.5, attention=0.5, subgraph=0.5, message_passing=0.5)
+    assert make_label(centroid, NAMES, ["graph"]) == "attention, message passing, pooling"
 
 
 def test_size_ties_go_to_the_lowest_original_cluster():

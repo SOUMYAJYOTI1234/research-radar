@@ -18,8 +18,9 @@ def test_every_entry_has_id_title_all_authors_and_year(load_fixture):
     entries = make_entries(papers)
     assert len(entries) == len(papers)
     for paper, entry in zip(papers, entries):
+        title = re.sub(r"(?<!\\)([&%#_$])", r"\\\1", paper.title.replace("{", "").replace("}", ""))
         assert f"eprint={{{paper.arxiv_id}}}" in entry
-        assert f"title={{{paper.title.replace('{', '').replace('}', '')}}}" in entry
+        assert f"title={{{title}}}" in entry
         assert f"author={{{' and '.join(paper.authors)}}}" in entry
         assert f"year={{{paper.published[:4]}}}" in entry
 
@@ -43,7 +44,22 @@ def test_curly_braces_removed_from_titles(make_entry):
     paper = make_entry(title=r"A {GPU} Study of $\mathcal{O}(n)$ {{Sparse}} Graphs")
     [entry] = make_entries([paper])
     title = re.search(r"title=\{(.*?)\}, author=", entry).group(1)
-    assert title == r"A GPU Study of $\mathcalO(n)$ Sparse Graphs"
+    assert title == r"A GPU Study of \$\mathcalO(n)\$ Sparse Graphs"
+
+
+def test_latex_special_characters_in_titles_are_escaped(make_entry):
+    [entry] = make_entries([make_entry(title="R&D at 100% for #1 graph_nets under $5")])
+    assert r"title={R\&D at 100\% for \#1 graph\_nets under \$5}" in entry
+
+
+def test_already_escaped_characters_are_not_escaped_twice(make_entry):
+    [entry] = make_entries([make_entry(title=r"R\&D and Q&A")])
+    assert r"title={R\&D and Q\&A}" in entry
+
+
+def test_escaping_does_not_change_the_key(make_entry):
+    paper = make_entry(authors=("Ada Lovelace",), published="2024-01-01", title="R&D_Graphs for #GNNs")
+    assert make_key(paper) == "lovelace2024rdgraphs"
 
 
 def test_old_style_id_in_eprint(load_fixture):
