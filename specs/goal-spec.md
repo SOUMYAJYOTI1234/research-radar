@@ -56,3 +56,4 @@ User accounts, saved searches, database, LLM summaries, full-text PDF reading, c
 - For broad topics, date narrowing keeps only the last 5 years, so the list is recent-only and classic papers may be absent. Research Radar has no citation data to tell which older papers matter most.
 - TF-IDF relevance favours papers with short titles that repeat the topic words, so a narrow paper can outrank a broad survey.
 - Identical searches running at the same time both call arXiv; the cache only helps once the first one has finished.
+- BibTeX output does not specially handle display math (`$$...$$`), escaped braces (`\{ \}`), or a stray unpaired `$` before a math segment. It has been checked as text only, not compiled with LaTeX.

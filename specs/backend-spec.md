@@ -101,10 +101,12 @@ Status, with `target = min(10, max_papers)`:
 ## Inbound limit
 - At most 10 searches per minute per client. Client = first address in `X-Forwarded-For`, else the socket address. Excess requests get 429 with detail "Too many searches. Please wait a minute."
 - Every `POST /api/search` counts, including requests that end in 422 and cache hits. The limit is checked before validation, so a limited client gets 429 even for invalid input.
+- A request that gets 429 does not count, so a client is let through again 60 seconds after its oldest counted search, even if it kept retrying.
 - Known limit: the first `X-Forwarded-For` address is set by the client and can be faked. Accepted for this project; noted in the README.
 
 ## Logging
 - One log line per round: strategy, total_results, duration_ms. Do not log client IP addresses.
+- The app's loggers write to standard output at INFO level, so the per-round lines appear in Render's logs. Uvicorn's access log lines are kept, with the client address replaced by `-`.
 
 ## Deployment
 - `Dockerfile` from `python:3.12-slim`; install `requirements.txt`; run `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`.

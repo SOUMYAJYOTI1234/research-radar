@@ -1,8 +1,29 @@
-"""Pydantic response models, field for field from specs/api-contract-spec.md."""
+"""Pydantic request and response models, field for field from specs/api-contract-spec.md."""
 
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Annotated, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StringConstraints, field_validator
+
+Category = Literal[
+    "cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.RO", "cs.IR",
+    "stat.ML", "quant-ph", "physics.comp-ph", "math.OC", "eess.SP", "q-bio.QM",
+]
+
+
+class SearchRequest(BaseModel):
+    topic: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=100)]
+    category: Category | None = None
+    from_year: int | None = None
+    max_papers: int = Field(default=20, ge=5, le=30)
+
+    @field_validator("from_year")
+    @classmethod
+    def from_year_in_range(cls, value: int | None) -> int | None:
+        current_year = datetime.now(timezone.utc).year
+        if value is not None and not 2000 <= value <= current_year:
+            raise ValueError(f"from_year must be from 2000 to {current_year}")
+        return value
 
 
 class Paper(BaseModel):
