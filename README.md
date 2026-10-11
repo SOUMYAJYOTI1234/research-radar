@@ -44,11 +44,27 @@ The tests never call arXiv. The arXiv client always receives an injected `httpx.
 
 ## Evaluation
 
+### Running it
+
 ```bash
 python eval/run_eval.py
 ```
 
 This is a live run against arXiv and takes several minutes, because of the 3-second spacing. For each topic in [eval/golden_topics.json](eval/golden_topics.json) it calls the uncached search with no filters and `max_papers=20`, and checks whether the well-known paper for that topic appears in the top 20. The topics are 10 golden topics, each naming one well-known paper, plus 2 loop-behaviour cases. It writes [eval/results.md](eval/results.md) with the run time, the commit, a table per topic with its trace, and the totals. Results change as arXiv adds papers, so the date matters.
+
+### Results
+
+**Baseline (11 Oct 2026).** 1 of 10 golden papers appeared in the top 20 (chain of thought, at rank 1), on these 10 topics. See [eval/results.md](eval/results.md).
+
+**Experiment.** A controlled 2×2 comparison of two changes:
+- title narrowing: for a broad topic, first keep papers with the exact phrase in the title (`ti:"P"`) before falling back to date narrowing;
+- a larger pool: `max_results` 100 instead of 50.
+
+All four configurations ran interleaved on the same day. The decision rule was written into [specs/evaluation-spec.md](specs/evaluation-spec.md) and committed before the run.
+
+**Outcome.** No configuration qualified, so production is unchanged; the architect signed off on 12 Oct 2026. Title narrowing alone did best, with 2 of 10 (it added the original GAN paper, at rank 19), short of the required 3. The larger pool added no hits and raised request times (p90 above 7 s). See [the experiment report](eval/experiments/2026-10-11-title-narrowing-pool/golden.md).
+
+**Main finding.** arXiv's own relevance order does not surface many classic papers: several were not in its top 100 even for an exact-phrase query. Changing the queries cannot fix that without an external signal such as citation counts, which is listed as future work in [specs/goal-spec.md](specs/goal-spec.md).
 
 ## Specs and process
 
@@ -72,7 +88,7 @@ The process:
 
 | Date | Time (UTC) | URL | Search | Result |
 |---|---|---|---|---|
-| 11 Oct 2026 | _not recorded_ | https://research-radar-cyju.onrender.com | "graph neural networks" | `status: completed`, message "Found 20 papers in 2 searches."; a repeated identical search returned `cached: true` |
+| 11 Oct 2026 | about 15:53 | https://research-radar-cyju.onrender.com | "graph neural networks" | `status: completed`, message "Found 20 papers in 2 searches."; a repeated identical search returned `cached: true` |
 
 ## Known limits
 
@@ -82,6 +98,8 @@ From [specs/goal-spec.md](specs/goal-spec.md):
 - TF-IDF relevance favours papers with short titles that repeat the topic words, so a narrow paper can outrank a broad survey.
 - Identical searches running at the same time both call arXiv; the cache only helps once the first one has finished.
 - BibTeX output does not specially handle display math (`$$...$$`), escaped braces (`\{ \}`), or a stray unpaired `$` before a math segment. It has been checked as text only, not compiled with LaTeX.
+- Research Radar is best for recent work on a topic. Foundational papers are often absent, because arXiv's relevance order and the date narrowing favour recent papers.
+- arXiv occasionally responds slowly. In the 2×2 experiment of 11 Oct 2026, about 1 in 12 searches hit the 10-second timeout. The user can press Try again.
 
 Deployment and testing:
 

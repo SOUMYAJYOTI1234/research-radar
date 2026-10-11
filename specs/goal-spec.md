@@ -57,3 +57,8 @@ User accounts, saved searches, database, LLM summaries, full-text PDF reading, c
 - TF-IDF relevance favours papers with short titles that repeat the topic words, so a narrow paper can outrank a broad survey.
 - Identical searches running at the same time both call arXiv; the cache only helps once the first one has finished.
 - BibTeX output does not specially handle display math (`$$...$$`), escaped braces (`\{ \}`), or a stray unpaired `$` before a math segment. It has been checked as text only, not compiled with LaTeX.
+- Research Radar is best for recent work on a topic. Foundational papers are often absent, because arXiv's relevance order and the date narrowing favour recent papers.
+- arXiv occasionally responds slowly. In the 2×2 experiment of 11 Oct 2026, about 1 in 12 searches hit the 10-second timeout. The user can press Try again.
+
+## Open questions / future work
+- Citation counts from a free source (for example OpenAlex) as a ranking signal, so foundational papers can rank higher. This is currently out of scope. It would need its own spec, evaluation and failure handling (a second external service that can be slow or down).

@@ -71,4 +71,4 @@ Hits are counted on these golden topics only; they are not a measure of quality 
 
 **No configuration qualifies: adopt nothing.** The failed criteria above say why.
 
-Architect sign-off: ____________________  Date: __________
+Architect sign-off: Soumyajyoti Chatterjee  Date: 12 Oct 2026  Decision: adopt nothing.
