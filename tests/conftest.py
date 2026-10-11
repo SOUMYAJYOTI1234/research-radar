@@ -1,7 +1,59 @@
+from pathlib import Path
+
+import httpx
 import pytest
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
 def anyio_backend():
     # Run async tests on asyncio only, so the anyio plugin does not need trio.
     return "asyncio"
+
+
+@pytest.fixture
+def load_fixture():
+    """Return a function that reads a recorded Atom file from tests/fixtures/."""
+
+    def load(name: str) -> bytes:
+        return (FIXTURES_DIR / name).read_bytes()
+
+    return load
+
+
+@pytest.fixture
+def mock_arxiv(load_fixture):
+    """Return a function that builds a fake arXiv: mock_arxiv(routes) -> (client, request_log).
+
+    `routes` maps a search_query string to a reply:
+    - a fixture file name: served with status 200,
+    - an int: that HTTP status with an empty body,
+    - an httpx.Response: returned as is,
+    - an httpx exception class: raised, as a real transport would.
+    A search_query missing from `routes` fails the test with a KeyError.
+    Every request is appended to request_log before it is answered.
+    """
+
+    def build(routes):
+        request_log = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            request_log.append(request)
+            reply = routes[request.url.params["search_query"]]
+            if isinstance(reply, str):
+                return httpx.Response(
+                    200,
+                    content=load_fixture(reply),
+                    headers={"Content-Type": "application/atom+xml; charset=utf-8"},
+                )
+            if isinstance(reply, int):
+                return httpx.Response(reply)
+            if isinstance(reply, httpx.Response):
+                return reply
+            raise reply("simulated failure", request=request)
+
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        return client, request_log
+
+    return build

@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written test fixture in the arXiv API Atom format. Paper details are synthetic. -->
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <link href="https://arxiv.org/api/query?search_query=%28ti%3A%22diffusion%20models%20time%20series%22%20OR%20abs%3A%22diffusion%20models%20time%20series%22%29&amp;id_list=&amp;start=0&amp;max_results=50" rel="self" type="application/atom+xml"/>
+  <title type="html">arXiv Query: search_query=(ti:"diffusion models time series" OR abs:"diffusion models time series")&amp;id_list=&amp;start=0&amp;max_results=50</title>
+  <id>https://arxiv.org/api/q7Hc2LpV9xRk4TbZ1mWn8sEa3Yd</id>
+  <updated>2026-10-11T00:00:00-04:00</updated>
+  <opensearch:totalResults>245</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <opensearch:itemsPerPage>50</opensearch:itemsPerPage>
+  <entry>
+    <id>http://arxiv.org/abs/2301.01234v2</id>
+    <updated>2023-02-10T09:15:02Z</updated>
+    <published>2023-01-03T18:59:59Z</published>
+    <title>Conditional Diffusion Models for Probabilistic
+  Time Series Forecasting</title>
+    <summary>  We study conditional denoising diffusion models for probabilistic
+forecasting of multivariate time series. The model learns to reverse a
+gradual noising process while conditioning on the observed history, and
+produces calibrated forecast distributions on six public benchmarks.
+</summary>
+    <author>
+      <name>Anika Sharma</name>
+    </author>
+    <author>
+      <name>Tomás Herrera</name>
+    </author>
+    <author>
+      <name>Lena Vogel</name>
+    </author>
+    <arxiv:comment>14 pages, 6 figures</arxiv:comment>
+    <link href="https://arxiv.org/abs/2301.01234v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2301.01234v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2306.11870v1</id>
+    <updated>2023-06-20T14:02:11Z</updated>
+    <published>2023-06-20T14:02:11Z</published>
+    <title>Score-Based Imputation of Missing Values in Multivariate Time Series</title>
+    <summary>  Missing values are common in sensor and clinical time series. We propose a
+score-based diffusion model that imputes missing entries by conditioning on the
+observed values, and show that it outperforms deterministic imputation methods
+on air quality and healthcare datasets.
+</summary>
+    <author>
+      <name>Wei Zhang</name>
+    </author>
+    <author>
+      <name>Lukas Müller</name>
+      <arxiv:affiliation>Technical University of Munich</arxiv:affiliation>
+    </author>
+    <arxiv:comment>12 pages, 5 figures</arxiv:comment>
+    <arxiv:journal_ref>Transactions on Machine Learning Research (2023)</arxiv:journal_ref>
+    <link href="https://arxiv.org/abs/2306.11870v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2306.11870v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2402.05517v3</id>
+    <updated>2024-09-30T16:45:12Z</updated>
+    <published>2024-02-08T10:30:00Z</published>
+    <title>Diffusion Transformers for Long-Horizon
+  Time Series Forecasting</title>
+    <summary>  Long-horizon forecasting requires models that capture both trend and
+seasonality over hundreds of steps. We combine a transformer backbone with a
+diffusion objective and report lower forecasting error than autoregressive
+transformers on electricity, traffic and weather benchmarks.
+</summary>
+    <author>
+      <name>Rahul Iyer</name>
+    </author>
+    <author>
+      <name>Sofia Marquez</name>
+    </author>
+    <author>
+      <name>Jonas Berg</name>
+    </author>
+    <author>
+      <name>Mei Lin</name>
+    </author>
+    <author>
+      <name>Daniel Okafor</name>
+    </author>
+    <author>
+      <name>Hanna Kowalski</name>
+    </author>
+    <arxiv:comment>Camera-ready version</arxiv:comment>
+    <link href="https://arxiv.org/abs/2402.05517v3" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2402.05517v3" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2210.04021v1</id>
+    <updated>2022-10-08T07:21:45Z</updated>
+    <published>2022-10-08T07:21:45Z</published>
+    <title>Denoising Diffusion for Anomaly Detection in Sensor Time Series</title>
+    <summary>  We detect anomalies in industrial sensor time series by measuring how
+well a denoising diffusion model reconstructs each window. Windows with high
+reconstruction error are flagged as anomalous, giving strong detection results
+on three public anomaly detection benchmarks.
+</summary>
+    <author>
+      <name>Ji-woo Park</name>
+    </author>
+    <author>
+      <name>Marco Bellini</name>
+    </author>
+    <link href="https://arxiv.org/abs/2210.04021v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2210.04021v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="eess.SP" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SP" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2408.13342v2</id>
+    <updated>2025-01-15T08:10:00Z</updated>
+    <published>2024-08-23T12:00:41Z</published>
+    <title>A Survey of Diffusion Models for Time Series Analysis</title>
+    <summary>  This survey reviews diffusion models for time series, covering
+forecasting, imputation, generation and anomaly detection. We organise more
+than one hundred papers by conditioning strategy and network architecture, and
+list open problems for the field.
+</summary>
+    <author>
+      <name>Olivia Grant</name>
+    </author>
+    <author>
+      <name>Kenji Watanabe</name>
+    </author>
+    <author>
+      <name>Fatima Haddad</name>
+    </author>
+    <author>
+      <name>Pierre Lefèvre</name>
+    </author>
+    <arxiv:comment>Survey, 38 pages</arxiv:comment>
+    <link href="https://arxiv.org/abs/2408.13342v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2408.13342v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2105.09977v1</id>
+    <updated>2021-05-20T17:55:03Z</updated>
+    <published>2021-05-20T17:55:03Z</published>
+    <title>Autoregressive Denoising Diffusion for Multivariate Probabilistic
+  Forecasting</title>
+    <summary>  We propose an autoregressive model that uses denoising diffusion at each
+time step to sample from the conditional distribution of the next value. The
+approach gives sharp probabilistic forecasts for high-dimensional multivariate
+series.
+</summary>
+    <author>
+      <name>Erik Lindqvist</name>
+    </author>
+    <author>
+      <name>Amara Nwosu</name>
+    </author>
+    <link href="https://arxiv.org/abs/2105.09977v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2105.09977v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2501.07702v1</id>
+    <updated>2025-01-13T09:40:27Z</updated>
+    <published>2025-01-13T09:40:27Z</published>
+    <title>Latent Diffusion for Irregularly Sampled Clinical Time Series</title>
+    <summary>  Clinical measurements are recorded at irregular intervals. We encode
+irregular observations into a continuous latent space and train a latent
+diffusion model there, improving imputation and mortality prediction on
+intensive care records.
+</summary>
+    <author>
+      <name>Grace Liu</name>
+    </author>
+    <author>
+      <name>Samuel Adeyemi</name>
+    </author>
+    <author>
+      <name>Nora Fischer</name>
+    </author>
+    <link href="https://arxiv.org/abs/2501.07702v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2501.07702v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="q-bio.QM" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2311.02290v2</id>
+    <updated>2023-12-01T13:05:40Z</updated>
+    <published>2023-11-04T11:11:11Z</published>
+    <title>Generating Synthetic Financial Time Series with $\mathcal{O}(T)$
+  Diffusion Sampling</title>
+    <summary>  We generate synthetic financial time series with a diffusion sampler
+whose cost grows linearly with the series length. Generated price paths keep
+the heavy tails and volatility clustering of real markets, with a
+discriminative score gap of &lt;5%, which makes them useful for risk and R&amp;D
+teams that cannot share real data.
+</summary>
+    <author>
+      <name>Arjun Mehta</name>
+    </author>
+    <author>
+      <name>Clara Jensen</name>
+    </author>
+    <link href="https://arxiv.org/abs/2311.02290v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2311.02290v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="q-fin.ST" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/1412.6020v2</id>
+    <updated>2015-03-02T10:00:00Z</updated>
+    <published>2014-12-18T20:04:33Z</published>
+    <title>Stochastic Processes for Sequence Modelling: A Diffusion Perspective</title>
+    <summary>  We view sequence modelling through stochastic differential equations and
+describe how diffusion processes can model the evolution of time series. The
+note connects classical filtering with modern generative models.
+</summary>
+    <author>
+      <name>Henrik Olsen</name>
+    </author>
+    <link href="https://arxiv.org/abs/1412.6020v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/1412.6020v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2603.04418v1</id>
+    <updated>2026-03-12T15:20:09Z</updated>
+    <published>2026-03-12T15:20:09Z</published>
+    <title>Physics-Informed Diffusion Models for Spatio-Temporal Weather Series</title>
+    <summary>  We add physical constraints from the governing equations to a diffusion
+model for spatio-temporal weather series. The constrained model produces
+ensembles that respect conservation laws and improves medium-range forecast
+skill over an unconstrained baseline.
+</summary>
+    <author>
+      <name>Ingrid Solberg</name>
+    </author>
+    <author>
+      <name>Mateo Rossi</name>
+    </author>
+    <author>
+      <name>Aisha Rahman</name>
+    </author>
+    <arxiv:doi>10.48550/arXiv.2603.04418</arxiv:doi>
+    <link title="doi" href="https://doi.org/10.48550/arXiv.2603.04418" rel="related"/>
+    <link href="https://arxiv.org/abs/2603.04418v1" rel="alternate" type="text/html"/>
+    <arxiv:primary_category term="physics.comp-ph" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="physics.comp-ph" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2207.08815v1</id>
+    <updated>2022-07-18T08:08:08Z</updated>
+    <published>2022-07-18T08:08:08Z</published>
+    <title>Frequency-Domain Diffusion for Time Series Generation</title>
+    <summary>  We run the diffusion process on Fourier coefficients instead of raw
+values. Generating time series in the frequency domain preserves periodic
+structure and improves the realism of generated samples.
+</summary>
+    <author>
+      <name>Yuki Tanaka</name>
+    </author>
+    <author>
+      <name>Benjamin Cole</name>
+    </author>
+    <link href="https://arxiv.org/abs/2207.08815v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2207.08815v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2509.10045v1</id>
+    <updated>2025-09-12T13:31:57Z</updated>
+    <published>2025-09-12T13:31:57Z</published>
+    <title>Benchmarking Diffusion Models Against Transformers for Traffic
+  Forecasting</title>
+    <summary>  We compare diffusion models and transformers for traffic forecasting on
+four road sensor networks under a shared evaluation protocol. Diffusion models
+give better calibrated uncertainty, while transformers remain faster and
+slightly more accurate for point forecasts.
+</summary>
+    <author>
+      <name>Laura Schmidt</name>
+      <arxiv:affiliation>University of Amsterdam</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Diego Fernández</name>
+    </author>
+    <author>
+      <name>Chen Wei</name>
+    </author>
+    <link href="https://arxiv.org/abs/2509.10045v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2509.10045v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>

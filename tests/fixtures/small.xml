@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written test fixture in the arXiv API Atom format. Paper details are synthetic. -->
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <link href="https://arxiv.org/api/query?search_query=%28ti%3A%22diffusion%20time%20series%20imputation%22%20OR%20abs%3A%22diffusion%20time%20series%20imputation%22%29&amp;id_list=&amp;start=0&amp;max_results=50" rel="self" type="application/atom+xml"/>
+  <title type="html">arXiv Query: search_query=(ti:"diffusion time series imputation" OR abs:"diffusion time series imputation")&amp;id_list=&amp;start=0&amp;max_results=50</title>
+  <id>https://arxiv.org/api/Jm4sQe8Xv2Lb7Nc1Rt9Wk5Hy0Pa</id>
+  <updated>2026-10-11T00:00:00-04:00</updated>
+  <opensearch:totalResults>3</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <opensearch:itemsPerPage>50</opensearch:itemsPerPage>
+  <entry>
+    <id>http://arxiv.org/abs/2404.06130v1</id>
+    <updated>2024-04-09T11:26:50Z</updated>
+    <published>2024-04-09T11:26:50Z</published>
+    <title>Diffusion Time Series Imputation for Air Quality Monitoring</title>
+    <summary>  Air quality stations often lose readings during maintenance. We apply
+diffusion time series imputation to fill these gaps and compare it with
+interpolation and matrix completion across forty monitoring stations.
+</summary>
+    <author>
+      <name>Rosa Delgado</name>
+    </author>
+    <author>
+      <name>Tariq Hassan</name>
+    </author>
+    <link href="https://arxiv.org/abs/2404.06130v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2404.06130v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2212.11402v2</id>
+    <updated>2023-01-20T09:00:12Z</updated>
+    <published>2022-12-22T16:40:03Z</published>
+    <title>Wavelet Features for Diffusion Time Series Imputation</title>
+    <summary>  We decompose each series with a wavelet transform before running the
+diffusion model, which helps diffusion time series imputation recover both
+slow trends and sharp events.
+</summary>
+    <author>
+      <name>Nikos Papadopoulos</name>
+    </author>
+    <link href="https://arxiv.org/abs/2212.11402v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2212.11402v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="eess.SP" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SP" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2507.03358v1</id>
+    <updated>2025-07-05T07:45:30Z</updated>
+    <published>2025-07-05T07:45:30Z</published>
+    <title>Diffusion Time Series Imputation Under Distribution Shift</title>
+    <summary>  Imputation models are usually tested on data drawn from the training
+distribution. We measure how diffusion time series imputation degrades under
+distribution shift and propose a simple test-time adaptation step.
+</summary>
+    <author>
+      <name>Maya Goldberg</name>
+    </author>
+    <author>
+      <name>Felix Wagner</name>
+    </author>
+    <author>
+      <name>Ana Costa</name>
+    </author>
+    <link href="https://arxiv.org/abs/2507.03358v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="https://arxiv.org/pdf/2507.03358v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>

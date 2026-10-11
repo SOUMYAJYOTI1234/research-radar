@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand-written test fixture in the arXiv API Atom format. Paper details are synthetic. -->
+<!-- Old-style IDs (archive/number), one duplicate entry (hep-th/9901001 as v1) and http links. -->
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <link href="http://arxiv.org/api/query?search_query%3D%28all%3Abrane%20AND%20all%3Aduality%29%26id_list%3D%26start%3D0%26max_results%3D50" rel="self" type="application/atom+xml"/>
+  <title type="html">ArXiv Query: search_query=(all:brane AND all:duality)&amp;id_list=&amp;start=0&amp;max_results=50</title>
+  <id>http://arxiv.org/api/Pq2Wn6Lk9Hb4Xs8Vc1Mt7Rz3Ja5</id>
+  <updated>2026-10-11T00:00:00-04:00</updated>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">4</opensearch:totalResults>
+  <opensearch:startIndex xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">0</opensearch:startIndex>
+  <opensearch:itemsPerPage xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">50</opensearch:itemsPerPage>
+  <entry>
+    <id>http://arxiv.org/abs/hep-th/9901001v2</id>
+    <updated>1999-03-15T12:40:05Z</updated>
+    <published>1999-01-04T16:02:31Z</published>
+    <title>Brane Configurations and Duality in Supersymmetric
+  Gauge Theories</title>
+    <summary>  We study brane configurations in string theory that realise
+supersymmetric gauge theories, and use them to derive duality relations
+between theories with different gauge groups.
+</summary>
+    <author>
+      <name>Paolo Bianchi</name>
+    </author>
+    <author>
+      <name>Karin Lund</name>
+    </author>
+    <arxiv:comment xmlns:arxiv="http://arxiv.org/schemas/atom">21 pages, LaTeX, 4 figures; references added</arxiv:comment>
+    <link href="http://arxiv.org/abs/hep-th/9901001v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/hep-th/9901001v2" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="hep-th" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="hep-th" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/math/0601004v1</id>
+    <updated>2006-01-02T08:15:44Z</updated>
+    <published>2006-01-02T08:15:44Z</published>
+    <title>Mirror Duality for Toric Varieties</title>
+    <summary>  We describe a duality between toric varieties and their mirror
+families, and compute the resulting correspondence of period integrals.
+</summary>
+    <author>
+      <name>Yves Durand</name>
+    </author>
+    <link href="http://arxiv.org/abs/math/0601004v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/math/0601004v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="math.AG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.AG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="hep-th" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/cond-mat/0207155v3</id>
+    <updated>2003-02-11T17:30:00Z</updated>
+    <published>2002-07-05T10:21:09Z</published>
+    <title>Brane-Like Defects and Duality in Spin Chains</title>
+    <summary>  We show that domain walls in a family of quantum spin chains behave like
+branes, and use a duality transformation to compute their energies exactly.
+</summary>
+    <author>
+      <name>Agnes Varga</name>
+    </author>
+    <author>
+      <name>Tom Becker</name>
+    </author>
+    <arxiv:journal_ref xmlns:arxiv="http://arxiv.org/schemas/atom">Phys. Rev. B 67, 054410 (2003)</arxiv:journal_ref>
+    <link href="http://arxiv.org/abs/cond-mat/0207155v3" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/cond-mat/0207155v3" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cond-mat.str-el" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cond-mat.str-el" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/hep-th/9901001v1</id>
+    <updated>1999-01-04T16:02:31Z</updated>
+    <published>1999-01-04T16:02:31Z</published>
+    <title>Brane Configurations and Duality in Supersymmetric
+  Gauge Theories</title>
+    <summary>  We study brane configurations in string theory that realise
+supersymmetric gauge theories, and use them to derive duality relations
+between theories with different gauge groups.
+</summary>
+    <author>
+      <name>Paolo Bianchi</name>
+    </author>
+    <author>
+      <name>Karin Lund</name>
+    </author>
+    <link href="http://arxiv.org/abs/hep-th/9901001v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/hep-th/9901001v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="hep-th" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="hep-th" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>
