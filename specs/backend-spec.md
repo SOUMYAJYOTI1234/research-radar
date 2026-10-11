@@ -114,4 +114,4 @@ Status, with `target = min(10, max_papers)`:
 - Free instances sleep when idle; the first request after sleep is slow. Open the app a minute before a demo.
 
 ## Open questions
-- (none yet)
+- Security headers: a `Content-Security-Policy` header on the page (for example `default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`) would add a second layer against script injection on top of the page inserting API text with `textContent`. Not specified, so not added.

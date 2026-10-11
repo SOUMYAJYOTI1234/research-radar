@@ -4,11 +4,108 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Research Radar</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
-  <header>
+  <header class="site-header">
     <h1>Research Radar</h1>
-    <p>Type a research topic. Get a ranked arXiv reading list.</p>
+    <p class="tagline">Type a research topic. Get a ranked arXiv reading list.</p>
   </header>
+
+  <main>
+    <form id="search-form" class="search-form" novalidate>
+      <div class="field">
+        <label for="topic">Topic</label>
+        <input id="topic" name="topic" type="text" placeholder="e.g. diffusion models for time series"
+               required autocomplete="off" aria-describedby="topic-error">
+        <p id="topic-error" class="field-error" hidden></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category" name="category" aria-describedby="category-error">
+            <option value="">Any category</option>
+            <option value="cs.AI">cs.AI Artificial Intelligence</option>
+            <option value="cs.LG">cs.LG Machine Learning</option>
+            <option value="cs.CL">cs.CL Computation and Language</option>
+            <option value="cs.CV">cs.CV Computer Vision and Pattern Recognition</option>
+            <option value="cs.RO">cs.RO Robotics</option>
+            <option value="cs.IR">cs.IR Information Retrieval</option>
+            <option value="stat.ML">stat.ML Machine Learning (Statistics)</option>
+            <option value="quant-ph">quant-ph Quantum Physics</option>
+            <option value="physics.comp-ph">physics.comp-ph Computational Physics</option>
+            <option value="math.OC">math.OC Optimization and Control</option>
+            <option value="eess.SP">eess.SP Signal Processing</option>
+            <option value="q-bio.QM">q-bio.QM Quantitative Methods</option>
+          </select>
+          <p id="category-error" class="field-error" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="from-year">From year <span class="hint">(optional)</span></label>
+          <input id="from-year" name="from_year" type="number" inputmode="numeric" min="2000" step="1"
+                 placeholder="e.g. 2020" aria-describedby="from-year-error">
+          <p id="from-year-error" class="field-error" hidden></p>
+        </div>
+      </div>
+
+      <button id="search-button" class="button button-primary" type="submit">Search</button>
+    </form>
+
+    <section id="results" class="results" aria-live="polite">
+      <p id="status" class="status" hidden></p>
+      <p id="notice" class="notice" hidden></p>
+
+      <div id="examples" class="examples">
+        <p class="examples-title">Try an example:</p>
+        <div class="example-list">
+          <button class="chip" type="button" data-topic="graph neural networks">graph neural networks</button>
+          <button class="chip" type="button" data-topic="retrieval augmented generation">retrieval augmented generation</button>
+          <button class="chip" type="button" data-topic="quantum error mitigation">quantum error mitigation</button>
+        </div>
+      </div>
+
+      <div id="try-again-row" class="try-again-row" hidden>
+        <button id="try-again" class="button" type="button">Try again</button>
+      </div>
+
+      <div id="chips" class="chips" role="group" aria-label="Filter papers by theme" hidden></div>
+
+      <div id="export-bar" class="export-bar" hidden>
+        <button id="download-bib" class="button" type="button">Download .bib</button>
+        <button id="copy-markdown" class="button" type="button">Copy Markdown list</button>
+        <div id="export-fallback" class="copy-fallback" hidden></div>
+      </div>
+
+      <ol id="papers" class="papers"></ol>
+    </section>
+
+    <details id="trace-panel" class="trace-panel" hidden>
+      <summary>How Research Radar searched</summary>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Round</th>
+              <th scope="col">Strategy</th>
+              <th scope="col">Query</th>
+              <th scope="col">Results found</th>
+              <th scope="col">Decision</th>
+              <th scope="col">Reason</th>
+              <th scope="col">Time</th>
+            </tr>
+          </thead>
+          <tbody id="trace-body"></tbody>
+        </table>
+      </div>
+    </details>
+  </main>
+
+  <footer class="site-footer">
+    <p>Data from the arXiv API. Thank you to arXiv for use of its open access interoperability.</p>
+    <p><a id="repo-link" href="#">Source code on GitHub</a></p>
+  </footer>
 </body>
 </html>
