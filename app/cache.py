@@ -3,7 +3,12 @@
 import time
 from collections import OrderedDict
 from collections.abc import Callable, Hashable
+from datetime import date
 from typing import Any
+
+from app.arxiv_client import ArxivClient
+from app.models import SearchResponse
+from app.search_loop import run_search
 
 TTL_SECONDS = 24 * 60 * 60
 MAX_ENTRIES = 200
@@ -49,3 +54,28 @@ class TTLCache:
         while len(self._items) > self.max_entries:
             self._items.popitem(last=False)
         return True
+
+
+# The process-wide cache used by the API route. Lost on restart, which the spec accepts.
+SEARCH_CACHE = TTLCache()
+
+
+async def cached_search(
+    topic_terms: list[str],
+    category: str | None,
+    from_year: int | None,
+    max_papers: int,
+    client: ArxivClient,
+    today: date,
+    cache: TTLCache | None = None,
+) -> SearchResponse:
+    """run_search() behind the 24-hour cache. A hit makes no arXiv request and has cached=True."""
+    cache = SEARCH_CACHE if cache is None else cache
+    key = (tuple(topic_terms), category, from_year, max_papers)
+    stored = cache.get(key)
+    if stored is not None:
+        return stored.model_copy(update={"cached": True}, deep=True)
+    response = await run_search(topic_terms, category, from_year, max_papers, client, today)
+    # Store a copy, so a caller changing the returned response cannot change later hits.
+    cache.set(key, response.model_copy(deep=True))
+    return response

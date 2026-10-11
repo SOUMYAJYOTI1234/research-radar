@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.arxiv_client import ArxivClient, RateLimiter
+from app.arxiv_client import ArxivClient, ArxivEntry, RateLimiter
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -76,6 +76,33 @@ def mock_arxiv(load_fixture):
         return client, request_log
 
     return build
+
+
+@pytest.fixture
+def make_entry():
+    """Return a function that builds an ArxivEntry; only the fields a test cares about need passing."""
+
+    def make(
+        arxiv_id="2401.00001",
+        title="A Study of Graphs",
+        abstract="We study graphs.",
+        authors=("Ada Lovelace",),
+        published="2024-01-02",
+        primary_category="cs.LG",
+    ):
+        return ArxivEntry(
+            arxiv_id=arxiv_id,
+            title=title,
+            abstract=abstract,
+            authors=list(authors),
+            published=published,
+            updated=published,
+            primary_category=primary_category,
+            abs_url=f"https://arxiv.org/abs/{arxiv_id}",
+            pdf_url=f"https://arxiv.org/pdf/{arxiv_id}",
+        )
+
+    return make
 
 
 @pytest.fixture

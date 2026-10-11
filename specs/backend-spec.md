@@ -76,6 +76,7 @@ Status, with `target = min(10, max_papers)`:
 - Recency = `max(0, 1 - (current_year - published_year) / 10)`.
 - Score = `0.8 * relevance + 0.2 * recency`, rounded to 3 decimals. Sort by score descending, then published descending, then arxiv_id ascending. Keep the top `max_papers`.
 - Grouping on the kept papers: if there are at least 8, `k = min(4, n // 4)`, `KMeans(n_clusters=k, random_state=42, n_init=10)` on their TF-IDF vectors; label each group with its top 3 centroid terms joined by ", "; number groups 0..k-1 by size, largest first. With fewer than 8 papers, one group with id 0 and label "All results".
+- With 0 papers (`empty` or `failed`), `groups` is an empty list.
 
 ## BibTeX (`app/bibtex.py`)
 - Key: lowercase ASCII surname of the first author + year + first title word longer than 3 letters, letters only (for example `vaswani2017attention`). Repeated keys in one response get suffixes `a`, `b`, ...
@@ -105,4 +106,4 @@ Status, with `target = min(10, max_papers)`:
 - Free instances sleep when idle; the first request after sleep is slow. Open the app a minute before a demo.
 
 ## Open questions
-- (none yet)
+- BibTeX: only curly braces are removed from titles. Other LaTeX special characters (`&`, `%`, `#`, `_`, `$`) pass through unchanged, so a title such as "R&D for GNNs" can break a LaTeX build. Escaping them is not specified.

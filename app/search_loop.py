@@ -2,10 +2,13 @@
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date
 
 from app.arxiv_client import ArxivClient, ArxivEntry, ArxivUnavailable
+from app.bibtex import make_entries
+from app.models import Group, Paper, SearchResponse, TraceEntry
+from app.ranking import group, rank
 from app.topic import build_query, strategies_for
 
 logger = logging.getLogger(__name__)
@@ -192,3 +195,46 @@ async def run_loop(
         row.decision = "accept"
         row.reason = no_broader_round_reason(total)
         return finish(current.entries)
+
+
+async def run_search(
+    topic_terms: list[str],
+    category: str | None,
+    from_year: int | None,
+    max_papers: int,
+    client: ArxivClient,
+    today: date,
+) -> SearchResponse:
+    """The full uncached search: the loop, then ranking, grouping and BibTeX."""
+    loop = await run_loop(topic_terms, category, from_year, max_papers, client, today)
+    ranking = rank(loop.entries, topic_terms, max_papers, today)
+    group_ids, groups = group(ranking)
+    bibtex = make_entries(ranking.entries)
+    papers = [
+        Paper(
+            arxiv_id=entry.arxiv_id,
+            title=entry.title,
+            authors=entry.authors,
+            published=entry.published,
+            updated=entry.updated,
+            primary_category=entry.primary_category,
+            abstract=entry.abstract,
+            abs_url=entry.abs_url,
+            pdf_url=entry.pdf_url,
+            score=score,
+            group_id=group_id,
+            bibtex=entry_bibtex,
+        )
+        for entry, score, group_id, entry_bibtex in zip(ranking.entries, ranking.scores, group_ids, bibtex)
+    ]
+    # The loop's status and message already count min(papers found, max_papers), which is
+    # exactly the number of papers kept here.
+    return SearchResponse(
+        status=loop.status,
+        message=loop.message,
+        cached=False,
+        query_terms=list(topic_terms),
+        papers=papers,
+        groups=[Group(group_id=g.group_id, label=g.label, size=g.size) for g in groups],
+        trace=[TraceEntry(**asdict(row)) for row in loop.trace],
+    )

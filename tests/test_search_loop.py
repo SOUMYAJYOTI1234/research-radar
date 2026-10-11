@@ -5,7 +5,8 @@ import httpx
 import pytest
 
 from app.arxiv_client import parse_feed
-from app.search_loop import describe_outcome, run_loop
+from app.models import SearchResponse
+from app.search_loop import describe_outcome, run_loop, run_search
 from app.topic import build_query
 
 pytestmark = pytest.mark.anyio
@@ -335,3 +336,66 @@ async def test_one_log_line_per_round(arxiv, caplog):
     assert len(lines) == len(result.trace) == 2
     assert "exact" in lines[0] and "total_results=3" in lines[0] and "duration_ms=" in lines[0]
     assert "all_words" in lines[1] and "failed" in lines[1]
+
+
+# --- run_search: loop, then ranking, grouping and BibTeX ---------------------------------
+
+
+async def test_run_search_returns_a_full_response(arxiv, load_fixture):
+    client, log = arxiv({q("exact"): "small.xml", q("all_words"): "normal.xml"})
+    response = await run_search(TERMS, None, None, 20, client, TODAY)
+    assert isinstance(response, SearchResponse)
+    assert (response.status, response.cached, response.query_terms) == ("completed", False, TERMS)
+    assert response.message == "Found 12 papers in 2 searches."
+    assert len(log) == 2
+    assert sorted(p.arxiv_id for p in response.papers) == sorted(fixture_ids(load_fixture, "normal.xml"))
+    scores = [p.score for p in response.papers]
+    assert scores == sorted(scores, reverse=True)
+    assert [g.group_id for g in response.groups] == [0, 1, 2]  # 12 papers -> k = 3
+    assert sum(g.size for g in response.groups) == 12
+    for paper in response.papers:
+        assert paper.group_id in {0, 1, 2}
+        assert paper.bibtex.startswith("@misc{") and f"eprint={{{paper.arxiv_id}}}" in paper.bibtex
+    assert [row.decision for row in response.trace] == ["broaden", "accept"]
+
+
+async def test_run_search_keeps_at_most_max_papers_and_status_follows_them(arxiv):
+    client, _ = arxiv({q("exact"): "normal.xml"})
+    response = await run_search(TERMS, None, None, 5, client, TODAY)
+    assert len(response.papers) == 5
+    assert (response.status, response.message) == ("completed", "Found 5 papers in 1 search.")
+    assert [(g.group_id, g.label, g.size) for g in response.groups] == [(0, "All results", 5)]
+
+
+async def test_run_search_partial_with_few_papers(arxiv):
+    terms = ["transformers"]
+    client, _ = arxiv({q("exact", terms): "small.xml", q("all_words", terms): "small.xml"})
+    response = await run_search(terms, None, None, 20, client, TODAY)
+    assert (response.status, len(response.papers)) == ("partial", 3)
+    assert [g.label for g in response.groups] == ["All results"]
+
+
+async def test_run_search_failed_has_no_papers_or_groups_but_keeps_the_trace(arxiv):
+    client, _ = arxiv({q("exact"): httpx.ConnectError})
+    response = await run_search(TERMS, None, None, 20, client, TODAY)
+    assert response.status == "failed"
+    assert response.message == FAILED_MESSAGE
+    assert (response.papers, response.groups) == ([], [])
+    assert [row.decision for row in response.trace] == ["failed"]
+
+
+async def test_run_search_empty_has_no_groups(arxiv):
+    terms = ["zxqv", "blorptastic"]
+    client, _ = arxiv({q(s, terms): "empty.xml" for s in ("exact", "all_words", "any_word")})
+    response = await run_search(terms, None, None, 20, client, TODAY)
+    assert (response.status, response.message) == ("empty", EMPTY_MESSAGE)
+    assert (response.papers, response.groups) == ([], [])
+    assert len(response.trace) == 3
+
+
+async def test_run_search_is_deterministic(arxiv):
+    client, _ = arxiv({q("exact"): "small.xml", q("all_words"): "normal.xml"})
+    first = await run_search(TERMS, None, None, 20, client, TODAY)
+    second = await run_search(TERMS, None, None, 20, client, TODAY)
+    assert first.papers == second.papers
+    assert first.groups == second.groups
