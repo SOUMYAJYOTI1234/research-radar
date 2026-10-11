@@ -10,6 +10,11 @@ def keys(entries):
     return [re.match(r"@misc\{([^,]*),", entry).group(1) for entry in entries]
 
 
+def title_of(title, make_entry):
+    [entry] = make_entries([make_entry(title=title)])
+    return re.search(r"title=\{(.*)\}, author=", entry).group(1)
+
+
 # --- Entry contents (AC8) ------------------------------------------------------------
 
 
@@ -18,9 +23,9 @@ def test_every_entry_has_id_title_all_authors_and_year(load_fixture):
     entries = make_entries(papers)
     assert len(entries) == len(papers)
     for paper, entry in zip(papers, entries):
-        title = re.sub(r"(?<!\\)([&%#_$])", r"\\\1", paper.title.replace("{", "").replace("}", ""))
+        # These titles have balanced braces and special characters only inside $...$, so they are kept as is.
         assert f"eprint={{{paper.arxiv_id}}}" in entry
-        assert f"title={{{title}}}" in entry
+        assert f"title={{{paper.title}}}" in entry
         assert f"author={{{' and '.join(paper.authors)}}}" in entry
         assert f"year={{{paper.published[:4]}}}" in entry
 
@@ -40,21 +45,47 @@ def test_entry_format(make_entry):
     ]
 
 
-def test_curly_braces_removed_from_titles(make_entry):
-    paper = make_entry(title=r"A {GPU} Study of $\mathcal{O}(n)$ {{Sparse}} Graphs")
-    [entry] = make_entries([paper])
-    title = re.search(r"title=\{(.*?)\}, author=", entry).group(1)
-    assert title == r"A GPU Study of \$\mathcalO(n)\$ Sparse Graphs"
+# --- Titles: braces, math and escaping ---------------------------------------------------
 
 
-def test_latex_special_characters_in_titles_are_escaped(make_entry):
-    [entry] = make_entries([make_entry(title="R&D at 100% for #1 graph_nets under $5")])
-    assert r"title={R\&D at 100\% for \#1 graph\_nets under \$5}" in entry
+def test_balanced_braces_are_kept(make_entry):
+    assert title_of(r"A {GPU} Study of {{Sparse}} Graphs", make_entry) == r"A {GPU} Study of {{Sparse}} Graphs"
+
+
+def test_unbalanced_braces_are_all_removed(make_entry):
+    assert title_of(r"A {GPU Study}} of {Graphs}", make_entry) == r"A GPU Study of Graphs"
+    assert title_of(r"A }GPU{ Study", make_entry) == r"A GPU Study"
+    assert title_of(r"An {Open Brace", make_entry) == r"An Open Brace"
+
+
+def test_math_segment_is_left_unchanged(make_entry):
+    title = r"Generating Synthetic Financial Time Series with $\mathcal{O}(T)$ Diffusion Sampling"
+    assert title_of(title, make_entry) == title
+
+
+def test_ampersand_outside_math_is_escaped(make_entry):
+    assert title_of("R&D for Graph Neural Networks", make_entry) == r"R\&D for Graph Neural Networks"
+
+
+def test_special_characters_escaped_outside_math_only(make_entry):
+    assert title_of(r"R&D with $O(n_1)$ cost & 5% loss on #2", make_entry) == (
+        r"R\&D with $O(n_1)$ cost \& 5\% loss on \#2"
+    )
+    assert title_of(r"$a_1$ & $b_{2}$ graph_nets", make_entry) == r"$a_1$ \& $b_{2}$ graph\_nets"
+
+
+def test_unpaired_dollar_is_escaped_as_text(make_entry):
+    assert title_of("R&D at 100% for #1 graph_nets under $5", make_entry) == (
+        r"R\&D at 100\% for \#1 graph\_nets under \$5"
+    )
+
+
+def test_escaped_dollar_is_not_a_math_delimiter(make_entry):
+    assert title_of(r"\$5 GPUs and $x_1$ & more", make_entry) == r"\$5 GPUs and $x_1$ \& more"
 
 
 def test_already_escaped_characters_are_not_escaped_twice(make_entry):
-    [entry] = make_entries([make_entry(title=r"R\&D and Q&A")])
-    assert r"title={R\&D and Q\&A}" in entry
+    assert title_of(r"R\&D and Q&A", make_entry) == r"R\&D and Q\&A"
 
 
 def test_escaping_does_not_change_the_key(make_entry):

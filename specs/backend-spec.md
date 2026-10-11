@@ -78,6 +78,7 @@ Status, with `target = min(10, max_papers)`:
 - Score = `0.8 * normalised relevance + 0.2 * recency`, rounded to 3 decimals. Sort by score descending, then published descending, then arxiv_id ascending. Keep the top `max_papers`.
 - Grouping on the kept papers: if there are at least 8, `k = min(4, n // 4)`, `KMeans(n_clusters=k, random_state=42, n_init=10)` on their TF-IDF vectors; label each group as below; number groups 0..k-1 by size, largest first. With fewer than 8 papers, one group with id 0 and label "All results".
 - Group label: from the centroid terms with a weight above 0, leave out every term that has a word starting with a query term (this covers the query term itself, plurals such as `graphs`, and phrases such as `graph learning`; `subgraph` is kept). Query terms are split the way TF-IDF splits words, so `self-supervised` gives `self` and `supervised`. The label is the top 3 remaining terms by centroid weight joined by ", ", fewer if fewer remain, or "Other" if none remain. Equal weights are ordered alphabetically.
+- Label overlap: go through the remaining terms by weight. Skip a term whose words all appear in one already chosen term. If a term contains all the words of an already chosen term, it replaces that term in its position (and removes any other chosen term it also covers). Stop when 3 terms are chosen. Example: `node, enhanced, node classification` becomes `node classification, enhanced, <next term>`.
 - With 0 papers (`empty` or `failed`), `groups` is an empty list.
 
 ## BibTeX (`app/bibtex.py`)
@@ -86,8 +87,10 @@ Status, with `target = min(10, max_papers)`:
   - Year: the year of `published`.
   - Title word: the first word whose letters-only form is longer than 3 letters, lowercased and accent-stripped the same way. If there is none, that part is left out.
   - Repeats: the first occurrence keeps the bare key; later ones get `a`, `b`, ... in response order (`vaswani2017attention`, `vaswani2017attentiona`).
-- Entry: `@misc{key, title={...}, author={A and B and C}, year={YYYY}, eprint={arxiv_id}, archivePrefix={arXiv}, primaryClass={primary_category}, url={abs_url}}`. Curly braces inside titles are removed.
-- Then the LaTeX special characters `&`, `%`, `#`, `_` and `$` in titles are escaped with a backslash (`R&D` becomes `R\&D`). A character already preceded by a backslash is left as it is, so it is not escaped twice.
+- Entry: `@misc{key, title={...}, author={A and B and C}, year={YYYY}, eprint={arxiv_id}, archivePrefix={arXiv}, primaryClass={primary_category}, url={abs_url}}`.
+- Title braces: if the title's curly braces are balanced (every `}` closes an earlier `{`, and none is left open), they are kept. If they are unbalanced, all curly braces in the title are removed.
+- Title math: `$...$` segments are left unchanged. `$` signs pair up from left to right; a `$` preceded by a backslash is not a delimiter, and a final unpaired `$` is treated as ordinary text.
+- Outside math, the LaTeX special characters `&`, `%`, `#`, `_` and `$` are escaped with a backslash (`R&D` becomes `R\&D`). A character already preceded by a backslash is left as it is, so it is not escaped twice.
 
 ## Cache (`app/cache.py`)
 - In-memory, keyed by (terms tuple, category, from_year, max_papers). Time to live 24 hours. At most 200 entries; evict least recently used.

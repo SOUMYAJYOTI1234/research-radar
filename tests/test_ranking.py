@@ -182,15 +182,10 @@ def test_group_label_is_the_top_3_centroid_terms(load_fixture):
     group_ids, groups = group(ranking)
     vectors = ranking.vectors.toarray()
     for g in groups:
-        # A converged KMeans centroid is the mean of its members' vectors.
+        # A converged KMeans centroid is the mean of its members' vectors; the label rules
+        # themselves are tested on make_label below.
         centroid = vectors[[i for i, gid in enumerate(group_ids) if gid == g.group_id]].mean(axis=0)
-        allowed = [
-            j
-            for j, name in enumerate(ranking.feature_names)
-            if centroid[j] > 0 and not any(word.startswith(t) for word in name.split() for t in TERMS)
-        ]
-        top3 = sorted(allowed, key=lambda j: (-centroid[j], ranking.feature_names[j]))[:3]
-        assert g.label == ", ".join(ranking.feature_names[j] for j in top3)
+        assert g.label == make_label(centroid, ranking.feature_names, TERMS)
         assert len(set(g.label.split(", "))) == 3
 
 
@@ -232,6 +227,24 @@ def test_label_splits_hyphenated_query_terms_like_tfidf():
     names = ["contrastive", "self", "selfish", "supervised learning"]
     centroid = np.array([0.1, 0.9, 0.8, 0.7])
     assert make_label(centroid, names, ["self-supervised"]) == "contrastive"
+
+
+def test_longer_term_replaces_a_chosen_term_it_contains():
+    names = ["enhanced", "node", "node classification", "pooling"]
+    centroid = np.array([0.8, 0.9, 0.7, 0.6])  # by weight: node, enhanced, node classification, pooling
+    assert make_label(centroid, names, ["graph"]) == "node classification, enhanced, pooling"
+
+
+def test_term_whose_words_are_all_in_a_chosen_term_is_skipped():
+    names = ["classification", "enhanced", "node", "node classification", "pooling"]
+    centroid = np.array([0.7, 0.5, 0.8, 0.9, 0.6])  # node classification first, then node, classification
+    assert make_label(centroid, names, ["graph"]) == "node classification, pooling, enhanced"
+
+
+def test_longer_term_covering_two_chosen_terms_replaces_both():
+    names = ["attention", "message", "message passing", "passing", "pooling"]
+    centroid = np.array([0.5, 0.9, 0.7, 0.8, 0.6])  # message, passing, message passing, pooling, attention
+    assert make_label(centroid, names, ["graph"]) == "message passing, pooling, attention"
 
 
 def test_label_orders_equal_weights_alphabetically():

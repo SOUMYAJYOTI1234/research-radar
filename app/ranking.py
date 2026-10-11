@@ -121,5 +121,20 @@ def make_label(centroid: np.ndarray, feature_names: list[str], query_terms: list
         for j, name in enumerate(feature_names)
         if centroid[j] > 0 and not any(word.startswith(q) for word in name.split() for q in query_words)
     ]
-    top = sorted(allowed, key=lambda j: (-centroid[j], feature_names[j]))[:LABEL_TERMS]
-    return ", ".join(feature_names[j] for j in top) or OTHER
+    chosen: list[str] = []
+    for j in sorted(allowed, key=lambda j: (-centroid[j], feature_names[j])):
+        words = set(feature_names[j].split())
+        # Skip a term that a chosen term already covers ("node" after "node classification").
+        if any(words <= set(term.split()) for term in chosen):
+            continue
+        # A term that covers chosen terms replaces them, in the first one's place.
+        covered = [i for i, term in enumerate(chosen) if set(term.split()) <= words]
+        if covered:
+            chosen[covered[0]] = feature_names[j]
+            for i in reversed(covered[1:]):
+                del chosen[i]
+        else:
+            chosen.append(feature_names[j])
+        if len(chosen) == LABEL_TERMS:
+            break
+    return ", ".join(chosen) or OTHER
