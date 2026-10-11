@@ -328,3 +328,12 @@ async def test_whole_request_is_capped_by_the_timeout(monkeypatch, limiter):
     with pytest.raises(ArxivUnavailable) as info:
         await client.fetch(QUERY)
     assert "timed out" in info.value.reason
+
+
+@pytest.mark.anyio
+async def test_max_results_follows_the_module_setting(arxiv, monkeypatch):
+    assert arxiv_client.MAX_RESULTS == 50, "production default"
+    monkeypatch.setattr(arxiv_client, "MAX_RESULTS", 100)
+    client, log = arxiv({QUERY: "normal.xml"})
+    await client.fetch(QUERY)
+    assert log[0].url.params["max_results"] == "100"

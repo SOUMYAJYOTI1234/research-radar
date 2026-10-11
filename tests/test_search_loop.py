@@ -4,6 +4,7 @@ from datetime import date
 import httpx
 import pytest
 
+from app import search_loop
 from app.arxiv_client import parse_feed
 from app.models import SearchResponse
 from app.search_loop import describe_outcome, run_loop, run_search
@@ -99,18 +100,22 @@ async def test_exact_below_10_then_all_words_broad_then_narrowed_uses_3_requests
     assert ids(result.entries) == fixture_ids(load_fixture, "normal.xml")
 
 
+@pytest.mark.parametrize("mode", ["date", "title_then_date"])
 @pytest.mark.parametrize("terms", [TERMS, ["transformers"]], ids=["four-terms", "one-term"])
-async def test_no_combination_of_round_outcomes_makes_more_than_3_requests(arxiv, terms):
+async def test_no_combination_of_round_outcomes_makes_more_than_3_requests(arxiv, monkeypatch, terms, mode):
+    monkeypatch.setattr(search_loop, "NARROWING", mode)
     outcomes = ["normal.xml", "broad.xml", "small.xml", "empty.xml", 500]
     strategies = ["exact", "all_words", "any_word"][: 3 if len(terms) > 1 else 2]
     for base in itertools.product(outcomes, repeat=len(strategies)):
-        for narrowed_outcome in outcomes:
-            routes = {}
+        # Title narrowing can only follow an exact round above 1000, so only then vary its outcome.
+        title_outcomes = outcomes if mode == "title_then_date" and base[0] == "broad.xml" else ["normal.xml"]
+        for narrowed_outcome, title_outcome in itertools.product(outcomes, title_outcomes):
+            routes = {q("title", terms): title_outcome}
             for strategy, outcome in zip(strategies, base):
                 routes[q(strategy, terms)] = outcome
                 routes[q(strategy, terms, narrowed=True)] = narrowed_outcome
             result, log = await search(arxiv, routes, terms=terms)
-            case = f"{base} narrowed={narrowed_outcome}"
+            case = f"{mode} {base} narrowed={narrowed_outcome} title={title_outcome}"
             assert 1 <= len(log) <= 3, case
             assert len(result.trace) == len(log), case
             assert column(result, "round") == list(range(1, len(log) + 1)), case
@@ -399,3 +404,112 @@ async def test_run_search_is_deterministic(arxiv):
     second = await run_search(TERMS, None, None, 20, client, TODAY)
     assert first.papers == second.papers
     assert first.groups == second.groups
+
+
+# --- Experiment switch: title narrowing before date narrowing --------------------------------
+
+
+def test_production_defaults_are_the_specified_behaviour():
+    from app import arxiv_client
+
+    assert search_loop.NARROWING == "date"
+    assert arxiv_client.MAX_RESULTS == 50
+
+
+@pytest.fixture
+def title_mode(monkeypatch):
+    monkeypatch.setattr(search_loop, "NARROWING", "title_then_date")
+
+
+async def test_title_mode_accepts_a_title_total_of_10_or_more(arxiv, load_fixture, title_mode):
+    result, log = await search(arxiv, {q("exact"): "broad.xml", q("title"): "normal.xml"})
+    assert [r.url.params["search_query"] for r in log] == [q("exact"), 'ti:"diffusion models time series"']
+    assert column(result, "strategy") == ["exact", "exact+title_narrowed"]
+    assert column(result, "decision") == ["narrow", "accept"]
+    assert result.trace[0].reason == "54000 matches are too many, so I searched for the exact phrase in titles only."
+    assert result.trace[1].reason == "245 papers have the exact phrase in the title, so I kept these results."
+    assert ids(result.entries) == fixture_ids(load_fixture, "normal.xml")
+    assert result.status == "completed"
+
+
+async def test_title_mode_falls_back_to_date_narrowing_below_10(arxiv, load_fixture, title_mode):
+    routes = {q("exact"): "broad.xml", q("title"): "small.xml", q("exact", narrowed=True): "normal.xml"}
+    result, log = await search(arxiv, routes)
+    assert len(log) == 3
+    assert column(result, "strategy") == ["exact", "exact+title_narrowed", "exact+date_narrowed"]
+    assert column(result, "decision") == ["narrow", "narrow", "accept"]
+    assert result.trace[1].reason == "Only 3 papers have the exact phrase in the title, so I searched only the last 5 years."
+    assert ids(result.entries) == fixture_ids(load_fixture, "normal.xml")
+
+
+async def test_title_mode_both_narrowings_too_small_keeps_round_1(arxiv, load_fixture, title_mode):
+    routes = {q("exact"): "broad.xml", q("title"): "small.xml", q("exact", narrowed=True): "small.xml"}
+    result, _ = await search(arxiv, routes)
+    assert result.trace[2].reason == "Only 3 matches in the last 5 years, so I kept the round-1 results."
+    assert ids(result.entries) == fixture_ids(load_fixture, "broad.xml")
+
+
+async def test_title_mode_singular_wording(arxiv, load_fixture, title_mode):
+    one = load_fixture("small.xml").replace(
+        b"<opensearch:totalResults>3</opensearch:totalResults>",
+        b"<opensearch:totalResults>1</opensearch:totalResults>",
+    )
+    routes = {q("exact"): "broad.xml", q("title"): httpx.Response(200, content=one), q("exact", narrowed=True): "normal.xml"}
+    result, _ = await search(arxiv, routes)
+    assert result.trace[1].reason == "Only 1 paper has the exact phrase in the title, so I searched only the last 5 years."
+
+
+async def test_title_mode_applies_with_from_year_and_keeps_round_1_below_10(arxiv, load_fixture, title_mode):
+    routes = {q("exact", from_year=2020): "broad.xml", q("title", from_year=2020): "small.xml"}
+    result, log = await search(arxiv, routes, from_year=2020)
+    assert len(log) == 2
+    assert column(result, "decision") == ["narrow", "accept"]
+    assert result.trace[1].reason == (
+        "Only 3 papers have the exact phrase in the title, so I kept the round-1 results; adding a category may help."
+    )
+    assert ids(result.entries) == fixture_ids(load_fixture, "broad.xml")
+
+
+async def test_title_mode_with_from_year_and_category_hint(arxiv, title_mode):
+    routes = {
+        q("exact", category="cs.LG", from_year=2020): "broad.xml",
+        q("title", category="cs.LG", from_year=2020): "small.xml",
+    }
+    result, _ = await search(arxiv, routes, category="cs.LG", from_year=2020)
+    assert result.trace[1].reason == (
+        "Only 3 papers have the exact phrase in the title, so I kept the round-1 results; "
+        "adding more specific words may help."
+    )
+
+
+async def test_title_mode_with_from_year_accepts_a_large_title_set(arxiv, load_fixture, title_mode):
+    routes = {q("exact", from_year=2020): "broad.xml", q("title", from_year=2020): "normal.xml"}
+    result, _ = await search(arxiv, routes, from_year=2020)
+    assert column(result, "strategy") == ["exact", "exact+title_narrowed"]
+    assert ids(result.entries) == fixture_ids(load_fixture, "normal.xml")
+
+
+async def test_title_mode_skips_title_narrowing_after_all_words(arxiv, load_fixture, title_mode):
+    routes = {
+        q("exact"): "small.xml",
+        q("all_words"): "broad.xml",
+        q("all_words", narrowed=True): "normal.xml",
+    }
+    result, log = await search(arxiv, routes)
+    assert not any("ti:" in r.url.params["search_query"] and "abs:" not in r.url.params["search_query"] for r in log)
+    assert column(result, "strategy") == ["exact", "all_words", "all_words+date_narrowed"]
+    assert ids(result.entries) == fixture_ids(load_fixture, "normal.xml")
+
+
+async def test_title_mode_failure_on_the_title_round_keeps_round_1(arxiv, load_fixture, title_mode):
+    result, _ = await search(arxiv, {q("exact"): "broad.xml", q("title"): 500})
+    assert column(result, "decision") == ["narrow", "failed"]
+    assert result.trace[1].reason == "arXiv did not respond, so I kept the results from round 1."
+    assert result.status == "partial"
+    assert ids(result.entries) == fixture_ids(load_fixture, "broad.xml")
+
+
+async def test_date_mode_never_sends_a_title_query(arxiv):
+    result, log = await search(arxiv, {q("exact"): "broad.xml", q("exact", narrowed=True): "normal.xml"})
+    assert column(result, "strategy") == ["exact", "exact+date_narrowed"]
+    assert len(log) == 2

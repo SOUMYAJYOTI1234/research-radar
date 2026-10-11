@@ -17,6 +17,11 @@ MAX_REQUESTS = 3
 MIN_ACCEPTED = 10
 MAX_ACCEPTED = 1000
 
+# How a round above MAX_ACCEPTED is narrowed. "date" is the specified behaviour (backend spec, rule 2).
+# "title_then_date" is an evaluation-only experiment (evaluation spec, "Controlled experiments"):
+# an exact round above 1000 is first narrowed to the exact phrase in titles. Production never changes this.
+NARROWING = "date"
+
 EMPTY_MESSAGE = "No arXiv papers matched. Try fewer or more general words."
 FAILED_MESSAGE = "arXiv could not be reached just now. Please try again in a minute."
 
@@ -91,9 +96,9 @@ async def run_loop(
     trace: list[TraceRow] = []
     succeeded: list[_Round] = []
 
-    async def request(strategy: str, narrowed: bool = False) -> _Round | None:
+    async def request(strategy: str, narrowed: bool = False, name: str | None = None) -> _Round | None:
         """Run one round and add its trace row. Returns None if arXiv failed."""
-        name = f"{strategy}+date_narrowed" if narrowed else strategy
+        name = name or (f"{strategy}+date_narrowed" if narrowed else strategy)
         query = build_query(strategy, terms, category, from_year, today, narrowed=narrowed)
         number = len(trace) + 1
         started = time.perf_counter()
@@ -127,6 +132,21 @@ async def run_loop(
         failed_row.reason = f"arXiv did not respond, so I kept the results from round {earlier.row.round}."
         return finish(earlier.entries, kept_after_failure=True)
 
+    async def date_narrow(broad: _Round) -> LoopResult:
+        """Re-run a broad round for the last 5 years; keep it if it has at least 10 matches."""
+        narrowed = await request(broad.row.strategy, narrowed=True)
+        if narrowed is None:
+            return after_failure()
+        narrowed.row.decision = "accept"
+        narrowed_total = narrowed.row.total_results
+        if narrowed_total >= MIN_ACCEPTED:
+            narrowed.row.reason = f"{_matches(narrowed_total)} in the last 5 years, so I kept these results."
+            return finish(narrowed.entries)
+        narrowed.row.reason = (
+            f"Only {_matches(narrowed_total)} in the last 5 years, so I kept the round-{broad.row.round} results."
+        )
+        return finish(broad.entries)
+
     def no_broader_round_reason(total: int) -> str:
         if total == 0:
             return "No matches, and no broader search is left."
@@ -148,22 +168,35 @@ async def run_loop(
             return finish(current.entries)
 
         if total > MAX_ACCEPTED:
+            # Experiment only (NARROWING = "title_then_date"): narrow an exact round to the phrase in titles first.
+            # Not after all_words: title matches are a subset of the exact round, which found fewer than 10.
+            if NARROWING == "title_then_date" and strategy == "exact" and len(trace) < MAX_REQUESTS:
+                row.decision = "narrow"
+                row.reason = f"{total} matches are too many, so I searched for the exact phrase in titles only."
+                titled = await request("title", name="exact+title_narrowed")
+                if titled is None:
+                    return after_failure()
+                title_total = titled.row.total_results
+                in_title = _count(title_total, "paper has", "papers have")
+                if title_total >= MIN_ACCEPTED:
+                    titled.row.decision = "accept"
+                    titled.row.reason = f"{in_title} the exact phrase in the title, so I kept these results."
+                    return finish(titled.entries)
+                if from_year is None and len(trace) < MAX_REQUESTS:
+                    titled.row.decision = "narrow"
+                    titled.row.reason = f"Only {in_title} the exact phrase in the title, so I searched only the last 5 years."
+                    return await date_narrow(current)
+                titled.row.decision = "accept"
+                hint = "adding more specific words may help." if category else "adding a category may help."
+                titled.row.reason = (
+                    f"Only {in_title} the exact phrase in the title, so I kept the round-{row.round} results; {hint}"
+                )
+                return finish(current.entries)
             # Rule 2: narrow to the last 5 years, once, if allowed.
             if from_year is None and len(trace) < MAX_REQUESTS:
                 row.decision = "narrow"
                 row.reason = f"{total} matches are too many, so I searched only the last 5 years."
-                narrowed = await request(strategy, narrowed=True)
-                if narrowed is None:
-                    return after_failure()
-                narrowed.row.decision = "accept"
-                narrowed_total = narrowed.row.total_results
-                if narrowed_total >= MIN_ACCEPTED:
-                    narrowed.row.reason = f"{_matches(narrowed_total)} in the last 5 years, so I kept these results."
-                    return finish(narrowed.entries)
-                narrowed.row.reason = (
-                    f"Only {_matches(narrowed_total)} in the last 5 years, so I kept the round-{row.round} results."
-                )
-                return finish(current.entries)
+                return await date_narrow(current)
             # Rule 3: broad, and narrowing is not available.
             row.decision = "accept"
             if category:

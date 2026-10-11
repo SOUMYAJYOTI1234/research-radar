@@ -127,3 +127,10 @@ def test_narrowed_bounds_follow_the_injected_today():
     assert build_query("all_words", ["qubit"], "quant-ph", None, date(2031, 1, 5), narrowed=True) == (
         "(all:qubit) AND cat:quant-ph AND submittedDate:[202701010000 TO 203101052359]"
     )
+
+
+def test_title_query_is_the_phrase_in_titles_with_the_same_filters():
+    assert build_query("title", TERMS, None, None, TODAY) == 'ti:"diffusion models time series"'
+    assert build_query("title", TERMS, "cs.LG", 2020, TODAY) == (
+        'ti:"diffusion models time series" AND cat:cs.LG AND submittedDate:[202001010000 TO 202610112359]'
+    )

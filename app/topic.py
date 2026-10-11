@@ -54,6 +54,9 @@ def build_query(
         query = "(" + " AND ".join(f"all:{term}" for term in terms) + ")"
     elif strategy == "any_word":
         query = "(" + " OR ".join(f"all:{term}" for term in terms) + ")"
+    elif strategy == "title":
+        # Title narrowing (experiment switch in search_loop): the exact phrase in titles only.
+        query = f'ti:"{" ".join(terms)}"'
     else:
         raise ValueError(f"unknown strategy {strategy!r}")
 

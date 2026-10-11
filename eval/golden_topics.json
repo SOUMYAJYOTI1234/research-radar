@@ -58,7 +58,7 @@
   {
     "topic": "graph neural networks",
     "expected_ids": [],
-    "note": "Loop-behaviour case: very many results, so it should trigger date narrowing.",
-    "loop_check": "date_narrowing"
+    "note": "Loop-behaviour case: very many results, so it should trigger narrowing (title or date).",
+    "loop_check": "narrowing"
   }
 ]
